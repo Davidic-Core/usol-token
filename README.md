@@ -60,6 +60,22 @@ the Mainnet token and has no guaranteed monetary value.
                                       wallets
   -----------------------------------------------------------------------
 
+## Wallet Interface (Phase 1)
+
+A minimal page for connecting a Phantom wallet. It detects whether Phantom is
+installed, connects through Phantom's browser provider, shows the connected
+public address, and disconnects again. It never asks for a seed phrase or
+private key, and it does not sign transactions or move tokens.
+
+Start the page (plain Node.js, no extra dependencies):
+
+``` bash
+npm start
+```
+
+Then open http://localhost:3000. The interface is in `web/` and the little
+static server is `web/server.js`.
+
 ## Setup
 
 Clone the repository:

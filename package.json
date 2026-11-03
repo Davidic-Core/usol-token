@@ -9,6 +9,7 @@
     "sharp": "^0.35.5"
   },
   "scripts": {
-    "deploy": "node deploy.js"
+    "deploy": "node deploy.js",
+    "start": "node web/server.js"
   }
 }

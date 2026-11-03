@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#060b14" />
+    <title>UnitedSolana (USOL) — Connect Phantom Wallet</title>
+    <meta
+      name="description"
+      content="Connect your Phantom wallet to UnitedSolana (USOL). Share only your public address."
+    />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card" aria-labelledby="app-title">
+        <div class="brand">
+          <img class="brand__mark" src="/logo.svg" alt="" width="56" height="56" />
+          <div class="brand__text">
+            <p class="brand__eyebrow">Solana · Wallet access</p>
+            <h1 id="app-title">UnitedSolana <span class="brand__symbol">USOL</span></h1>
+          </div>
+        </div>
+
+        <p class="lede">
+          Connect your Phantom wallet to UnitedSolana. Connecting shares only your
+          public address — nothing is signed and no tokens move.
+        </p>
+
+        <div class="wallet">
+          <p class="status" id="wallet-status" data-state="detecting" role="status" aria-live="polite">
+            Checking for Phantom…
+          </p>
+
+          <p class="hint" id="install-hint" hidden>
+            Install the
+            <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer">Phantom wallet</a>
+            to continue. If it is already installed, open this page in its own browser
+            tab and reload.
+          </p>
+
+          <button class="button button--primary" id="connect-button" type="button">
+            Connect Phantom Wallet
+          </button>
+
+          <div class="account" id="account" hidden>
+            <p class="account__label">Connected wallet</p>
+            <code class="account__address" id="account-address"></code>
+            <button class="button button--ghost" id="disconnect-button" type="button">
+              Disconnect Wallet
+            </button>
+          </div>
+
+          <p class="message" id="message" data-tone="info" role="status" aria-live="polite" hidden></p>
+        </div>
+
+        <p class="note">
+          UnitedSolana will never ask for your seed phrase or private key.
+        </p>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
