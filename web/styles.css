@@ -263,6 +263,18 @@ h1 {
   border-color: rgba(255, 128, 149, 0.32);
 }
 
+.diagnostics {
+  margin: 1.1rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed rgba(148, 180, 255, 0.18);
+  border-radius: 0.6rem;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .note {
   margin: 1.4rem 0 0;
   padding-top: 0.9rem;

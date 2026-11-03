@@ -76,6 +76,11 @@ npm start
 Then open http://localhost:3000. The interface is in `web/` and the little
 static server is `web/server.js`.
 
+On mobile, open the page in Phantom's built-in browser. If Phantom already has
+an active session the page reuses it; otherwise a connection request that gets
+no answer times out after 20 seconds instead of leaving the button stuck, and
+the diagnostics line under the buttons shows which provider was detected.
+
 ## Setup
 
 Clone the repository:
