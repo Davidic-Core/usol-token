@@ -1,0 +1,19 @@
+node_modules/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Wallet private keys and keypairs
+deployer-key.json
+*keypair*.json
+*-secret*.json
+*.pem
+*.key
+
+# Logs and build output
+*.log
+dist/
+build/
+.next/
