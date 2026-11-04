@@ -1,0 +1,28 @@
+{
+  "network": "mainnet-beta",
+  "rpcUrl": "https://api.mainnet-beta.solana.com",
+  "token": {
+    "name": "UnitedSOLANA",
+    "symbol": "USOL",
+    "standard": "Classic SPL Token",
+    "decimals": 9,
+    "initialSupply": "1000000000"
+  },
+  "wallets": {
+    "feePayer": "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU",
+    "initialHolder": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
+    "mintAuthority": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
+    "freezeAuthority": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
+  },
+  "status": "not-created",
+  "mintAddress": null,
+  "associatedTokenAccount": null,
+  "imageUri": null,
+  "metadataUri": null,
+  "metadataAccount": null,
+  "transactions": {
+    "mintCreation": null,
+    "metadataRegistration": null
+  },
+  "updatedAt": null
+}

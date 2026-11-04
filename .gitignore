@@ -8,6 +8,8 @@ node_modules/
 # Wallet private keys and keypairs
 deployer-key.json
 *keypair*.json
+fee-payer.json
+authority.json
 *-secret*.json
 *.pem
 *.key
