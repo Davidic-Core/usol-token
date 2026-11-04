@@ -2,12 +2,27 @@
 
 // Phase 1: Phantom wallet connection for UnitedSolana (USOL).
 //
-// Detection prefers Phantom's official provider (window.phantom.solana) and
-// falls back to the legacy injected window.solana object. Only the public key
-// is read: no transactions, no signatures, no key material.
+// How this page talks to Phantom: Phantom injects a provider object into the
+// page (window.phantom.solana, also exposed as window.solana for legacy
+// integrations). We call that provider's connect() method and read the account
+// **public address** it returns. That is the only wallet data this page ever
+// receives: no signatures, no transactions, and never a seed phrase or private
+// key. Nothing is written to localStorage, sessionStorage or cookies, and the
+// page makes no network request, so the address never leaves this tab.
+//
+// Wallet connectivity is deliberately independent of RPC configuration: this
+// file contains no cluster, Devnet or Mainnet settings, so connecting behaves
+// the same whatever network the rest of the project targets.
 
 const CONNECT_TIMEOUT_MS = 20000;
 const DISCONNECT_TIMEOUT_MS = 10000;
+
+// Mobile in-app browsers can inject the provider slightly after the page loads.
+const PROVIDER_WAIT_MS = 4000;
+const PROVIDER_POLL_MS = 150;
+
+// Phantom's documented deep link for opening a page in its in-app browser.
+const PHANTOM_BROWSE_URL = "https://phantom.com/ul/browse/";
 
 const statusEl = document.getElementById("wallet-status");
 const diagnosticsEl = document.getElementById("diagnostics");
@@ -17,14 +32,40 @@ const addressEl = document.getElementById("account-address");
 const disconnectButton = document.getElementById("disconnect-button");
 const messageEl = document.getElementById("message");
 const installHint = document.getElementById("install-hint");
+const frameNotice = document.getElementById("frame-notice");
+const openTabLink = document.getElementById("open-tab");
+const openInPhantomLink = document.getElementById("open-in-phantom");
+
+// Phantom does not inject its provider into iframes, and only injects into
+// https:// (or localhost) pages. Both facts decide what the page can offer.
+const embedded = (() => {
+  try {
+    return window.self !== window.top;
+  } catch (error) {
+    return true;
+  }
+})();
+
+const secureContextOk =
+  window.location.protocol === "https:" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+const mobileDevice = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
 
 const boundProviders = new WeakSet();
+const eagerAttempted = new WeakSet();
 
 let provider = null;
 let providerPath = null;
 let address = null;
 let busy = false;
+let awaitingProvider = false;
 let activity = null;
+
+// Phantom allows one outstanding connect request at a time, so every request
+// this page makes goes through beginConnect(), which reuses the pending one.
+let pendingConnect = null;
 
 function setMessage(text, tone) {
   if (!text) {
@@ -70,25 +111,48 @@ function isProviderConnected() {
   }
 }
 
-function diagnosticsText() {
-  if (!provider) {
-    return "No provider found. Checked window.phantom?.solana and window.solana.";
-  }
+function phantomBrowseLink() {
+  const target = encodeURIComponent(window.location.href);
+  const ref = encodeURIComponent(window.location.origin);
+  return `${PHANTOM_BROWSE_URL}${target}?ref=${ref}`;
+}
 
-  const parts = [`Provider: ${providerPath}`, `isConnected: ${isProviderConnected()}`];
+function diagnosticsText() {
+  const parts = [
+    provider
+      ? `provider: ${providerPath}`
+      : "provider: none (checked window.phantom?.solana and window.solana)"
+  ];
+
+  if (provider) parts.push(`isConnected: ${isProviderConnected()}`);
+  parts.push(`top-level: ${!embedded}`);
+  parts.push(`https: ${secureContextOk}`);
   if (activity) parts.push(activity);
+
   return parts.join(" · ");
 }
 
 function render() {
   const connected = Boolean(address);
 
-  statusEl.textContent = connected
-    ? "Phantom connected."
-    : provider
-      ? "Phantom detected — ready to connect."
-      : "No Phantom provider detected.";
-  statusEl.dataset.state = connected ? "connected" : provider ? "ready" : "missing";
+  let state = "missing";
+  let label = "No Phantom provider detected.";
+
+  if (connected) {
+    state = "connected";
+    label = "Phantom connected.";
+  } else if (provider) {
+    state = "ready";
+    label = "Phantom detected — ready to connect.";
+  } else if (awaitingProvider) {
+    state = "detecting";
+    label = "Looking for Phantom…";
+  } else if (embedded) {
+    label = "Phantom is not available inside an embedded frame.";
+  }
+
+  statusEl.textContent = label;
+  statusEl.dataset.state = state;
 
   diagnosticsEl.textContent = diagnosticsText();
   addressEl.textContent = address || "";
@@ -96,12 +160,28 @@ function render() {
 
   connectButton.hidden = connected;
   connectButton.disabled = busy;
-  connectButton.textContent = busy ? "Connecting…" : "Connect Phantom Wallet";
+  connectButton.textContent = awaitingProvider
+    ? "Looking for Phantom…"
+    : busy
+      ? "Connecting…"
+      : "Connect Phantom Wallet";
 
   disconnectButton.disabled = busy;
   disconnectButton.textContent = busy ? "Disconnecting…" : "Disconnect Wallet";
 
-  installHint.hidden = Boolean(provider) || connected;
+  // Only useful for a desktop visitor without the extension.
+  installHint.hidden = Boolean(provider) || connected || mobileDevice;
+
+  // Neither an iframe nor a plain mobile browser receives a provider, and each
+  // has its own way forward, so say which one applies instead of just failing.
+  frameNotice.hidden = !(embedded && !provider && !connected);
+  if (openTabLink) openTabLink.href = window.location.href;
+
+  if (openInPhantomLink) {
+    const showPhantomLink = mobileDevice && !provider && !connected;
+    openInPhantomLink.hidden = !showPhantomLink;
+    if (showPhantomLink) openInPhantomLink.href = phantomBrowseLink();
+  }
 }
 
 function bindProvider(wallet) {
@@ -111,7 +191,7 @@ function bindProvider(wallet) {
   if (typeof wallet.on !== "function") return;
 
   wallet.on("connect", (publicKey) => {
-    const key = toBase58(publicKey);
+    const key = toBase58(publicKey) || currentPublicKey();
     if (!key) return;
 
     address = key;
@@ -130,37 +210,50 @@ function bindProvider(wallet) {
   wallet.on("accountChanged", (publicKey) => {
     const key = toBase58(publicKey);
 
-    address = key;
-    activity = key ? "accountChanged event" : "accountChanged event (no account)";
-    setMessage(key ? "Wallet account changed." : "Wallet disconnected.", "info");
+    if (key) {
+      address = key;
+      activity = "accountChanged event";
+      setMessage("Wallet account changed.", "info");
+    } else {
+      // Phantom withheld the new account: stop showing the old address rather
+      // than prompt from an event handler.
+      address = null;
+      activity = "accountChanged event (no account)";
+      setMessage("Phantom stopped sharing an account. Tap Connect and choose one.", "info");
+    }
+
     render();
   });
 }
 
-function detectProvider() {
+function providerFromPage() {
   const official = window.phantom?.solana;
-  const legacy = window.solana;
-
-  let next = null;
-  let nextPath = null;
-
   if (official?.isPhantom) {
-    next = official;
-    nextPath = "window.phantom.solana";
-  } else if (legacy?.isPhantom) {
-    next = legacy;
-    nextPath = "window.solana (legacy)";
+    return { wallet: official, path: "window.phantom.solana" };
   }
 
-  if (next !== provider) {
-    provider = next;
-    providerPath = nextPath;
+  const legacy = window.solana;
+  if (legacy?.isPhantom) {
+    return { wallet: legacy, path: "window.solana (legacy)" };
+  }
+
+  return { wallet: null, path: null };
+}
+
+function detectProvider() {
+  const found = providerFromPage();
+
+  if (found.wallet !== provider) {
+    provider = found.wallet;
+    providerPath = found.path;
     activity = null;
-    if (provider) bindProvider(provider);
+
+    if (provider) {
+      bindProvider(provider);
+      restoreSession(provider);
+    }
   }
 
-  // Phantom's in-app browser opens the page already connected. Reuse that
-  // session instead of asking the provider to connect a second time.
   if (provider && !address) {
     const existing = currentPublicKey();
     if (existing) {
@@ -171,6 +264,67 @@ function detectProvider() {
 
   render();
   return provider;
+}
+
+// Eager connection, as documented by Phantom: connect({ onlyIfTrusted: true })
+// resolves silently when this site is already trusted and rejects with 4001 when
+// it is not. It never shows a prompt, so it is safe on every page load — and it
+// is what restores a session when the in-app browser reopens the page.
+function restoreSession(wallet) {
+  if (eagerAttempted.has(wallet) || typeof wallet.connect !== "function") return;
+  eagerAttempted.add(wallet);
+
+  beginConnect(wallet, true)
+    .then((response) => {
+      const key = toBase58(response?.publicKey) || currentPublicKey();
+      if (!key) return;
+
+      address = key;
+      activity = "existing trusted session";
+      setMessage("Wallet connected.", "success");
+      render();
+    })
+    .catch(() => {
+      // Not trusted yet: stay disconnected until the visitor presses Connect.
+      if (!address) activity = "no trusted session yet";
+      render();
+    });
+}
+
+// Single funnel for connect requests. A request that is still pending is reused
+// instead of issuing a second one, because Phantom rejects overlapping requests.
+function beginConnect(wallet, onlyIfTrusted) {
+  if (pendingConnect) return pendingConnect.promise;
+
+  let promise;
+  try {
+    promise = Promise.resolve(
+      onlyIfTrusted ? wallet.connect({ onlyIfTrusted: true }) : wallet.connect()
+    );
+  } catch (error) {
+    return Promise.reject(error);
+  }
+
+  const entry = { promise, onlyIfTrusted };
+  pendingConnect = entry;
+
+  const settle = () => {
+    if (pendingConnect === entry) pendingConnect = null;
+  };
+  promise.then(settle, settle);
+
+  return promise;
+}
+
+async function waitForProvider() {
+  const deadline = Date.now() + PROVIDER_WAIT_MS;
+
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, PROVIDER_POLL_MS));
+    if (detectProvider()) return provider;
+  }
+
+  return detectProvider();
 }
 
 function withTimeout(promise, ms, failureMessage) {
@@ -188,37 +342,73 @@ function withTimeout(promise, ms, failureMessage) {
 }
 
 function connectionError(error) {
-  if (error?.code === 4001 || /reject|denied|cancel/i.test(error?.message || "")) {
+  const code = error?.code;
+
+  if (code === 4001 || /reject|denied|cancel/i.test(error?.message || "")) {
     return "Connection request was rejected in Phantom.";
   }
 
-  if (error?.code === -32002) {
-    return "A connection request is already pending in Phantom.";
+  if (code === -32002) {
+    return "Phantom already has an approval window open. Finish it there, then try again.";
+  }
+
+  if (code === 4100) {
+    return "Phantom has not authorized this site yet. Approve the connection request in Phantom.";
+  }
+
+  if (code === 4900) {
+    return "Phantom lost its connection to the network. Check Phantom's connection and try again.";
   }
 
   const detail = typeof error?.message === "string" ? error.message.trim() : "";
   return detail ? `Could not connect: ${detail}` : "Could not connect to Phantom.";
 }
 
+function noProviderMessage() {
+  if (embedded) {
+    return "Phantom cannot connect from an embedded frame. Open this page in its own tab, then tap Connect.";
+  }
+
+  if (mobileDevice) {
+    return "No Phantom provider found in this browser. Open this page in Phantom's in-app browser using the button above.";
+  }
+
+  if (!secureContextOk) {
+    return "Phantom only injects its provider on https:// pages (or localhost). Open this page over https and try again.";
+  }
+
+  return "No Phantom provider found. Install or unlock the Phantom extension, then reload this page.";
+}
+
 async function connectWallet() {
   if (busy) return;
 
-  // Re-check on every click: mobile in-app browsers can inject the provider
-  // after the initial page load.
-  detectProvider();
-
-  if (!provider) {
-    activity = "connect aborted: no provider";
-    setMessage(
-      "No Phantom provider found. On mobile, open this page in Phantom's in-app browser; on desktop, install or unlock the Phantom extension.",
-      "error"
-    );
+  // Re-check on every click: in-app browsers can inject the provider after the
+  // first paint, so a tap must not fail just because nothing was there yet.
+  if (!detectProvider()) {
+    busy = true;
+    awaitingProvider = true;
+    activity = "waiting for provider injection";
     render();
-    return;
+
+    await waitForProvider();
+
+    busy = false;
+    awaitingProvider = false;
+
+    if (!provider) {
+      activity = "connect aborted: no provider";
+      setMessage(noProviderMessage(), "error");
+      render();
+      return;
+    }
   }
 
-  if (isProviderConnected() && currentPublicKey()) {
-    address = currentPublicKey();
+  // A session may already exist (Phantom restored it, or the user is coming back
+  // to a trusted site): show that instead of opening another approval prompt.
+  const existing = currentPublicKey();
+  if (existing) {
+    address = existing;
     activity = "reused existing session";
     setMessage("Wallet connected.", "success");
     render();
@@ -231,8 +421,14 @@ async function connectWallet() {
   render();
 
   try {
+    // An eager attempt must settle before a real request: if it is still open,
+    // wait for it rather than opening a second approval window.
+    if (pendingConnect?.onlyIfTrusted) {
+      await pendingConnect.promise.catch(() => {});
+    }
+
     const response = await withTimeout(
-      Promise.resolve(provider.connect()),
+      beginConnect(provider, false),
       CONNECT_TIMEOUT_MS,
       "Phantom did not respond."
     );
@@ -254,7 +450,7 @@ async function connectWallet() {
     } else if (error?.code === "USOL_TIMEOUT") {
       activity = `connect() timed out after ${CONNECT_TIMEOUT_MS / 1000}s`;
       setMessage(
-        `Phantom did not answer within ${CONNECT_TIMEOUT_MS / 1000} seconds. Unlock Phantom and try again, or reopen this page in Phantom's in-app browser.`,
+        `Phantom has not answered yet. Approve the request in Phantom; if no prompt appeared, reopen this page in Phantom's in-app browser.`,
         "error"
       );
     } else {
@@ -294,8 +490,9 @@ async function disconnectWallet() {
         "error"
       );
     } else {
+      address = null;
       activity = "disconnect() failed";
-      setMessage("Could not disconnect. Try again from Phantom.", "error");
+      setMessage("Could not disconnect in Phantom, so this page is signed out locally.", "error");
     }
   } finally {
     busy = false;
