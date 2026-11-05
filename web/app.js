@@ -11,8 +11,8 @@
 // page makes no network request, so the address never leaves this tab.
 //
 // Wallet connectivity is deliberately independent of RPC configuration: this
-// file contains no cluster, Devnet or Mainnet settings, so connecting behaves
-// the same whatever network the rest of the project targets.
+// file contains no cluster or network settings, so the Phantom connection is
+// unaffected by the Mainnet deployment scripts elsewhere in the project.
 
 const CONNECT_TIMEOUT_MS = 20000;
 const DISCONNECT_TIMEOUT_MS = 10000;
