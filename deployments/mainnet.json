@@ -42,16 +42,16 @@
       "amount": "100000000"
     }
   ],
-  "status": "not-created",
-  "mintAddress": null,
-  "associatedTokenAccount": null,
-  "imageUri": null,
-  "metadataUri": null,
-  "metadataAccount": null,
+  "status": "mint-and-metadata-verified",
+  "mintAddress": "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG",
+  "associatedTokenAccount": "4GGuwKMeqeN8c5tnhFyN3qK2715BNTrJPjZMYZiJpuS7",
+  "imageUri": "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo",
+  "metadataUri": "https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY",
+  "metadataAccount": "4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc",
   "transactions": {
-    "mintCreation": null,
-    "metadataRegistration": null
+    "mintCreation": "3N1UJdVAC8AGiCe9mJetrZHzBNW3aZTnAgfqtjoDMQey91jphBri5SGXsFBzt1cdnQAUtaA54Sv9k211EiJoHdUY",
+    "metadataRegistration": "2LKc5pLimSyiAQhCsUYpYNvjySjJZ8asmHo8qtopf3J6wvgqF2Abx1oYVBLK2gUT3niS4CKyvDoXJShuoJuEuD8C"
   },
   "recovery": null,
-  "updatedAt": null
+  "updatedAt": "2026-11-05T02:49:50.424Z"
 }
