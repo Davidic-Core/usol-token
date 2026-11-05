@@ -39,7 +39,7 @@ const {
 const { base58 } = require("@metaplex-foundation/umi/serializers");
 
 const config = require("./config/mainnet");
-const { loadState, saveState } = require("./lib/state");
+const { loadState, saveState, assertStateWallets } = require("./lib/state");
 const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
@@ -48,7 +48,12 @@ const {
 } = require("./lib/wallets");
 const { assertMainnetRpc } = require("./lib/rpc");
 const { assertMintOnChain, assertHolderTokenAccount } = require("./lib/verify");
-const { heading, confirmExecution } = require("./lib/cli");
+const {
+  heading,
+  confirmExecution,
+  wantsExecution
+} = require("./lib/cli");
+const { assertExecutionWallets } = require("./lib/preflight");
 
 function loadMetadataTemplate() {
   const metadata = JSON.parse(
@@ -193,12 +198,12 @@ async function main() {
     return selfTest();
   }
 
-  const rpcUrl = config.resolveRpcUrl();
+  const rpcUrl = config.resolveRpcUrl({ execute: wantsExecution() });
   const state = loadState();
 
   heading("UnitedSOLANA (USOL) — Mainnet metadata registration");
 
-  config.assertValidWallets();
+  assertExecutionWallets(state);
 
   console.log(`Network            Solana Mainnet (${config.NETWORK})`);
   console.log(`RPC                ${rpcUrl}`);
@@ -306,6 +311,8 @@ async function main() {
       );
     }
 
+    assertExecutionWallets(current);
+    config.assertOfficialMainnetRpcUrl(rpcUrl);
     await assertMainnetRpc(connection);
     await assertMintOnChain(connection, current.mintAddress);
     await assertMetadataUri(current.metadataUri);
@@ -393,6 +400,36 @@ function selfTest() {
 
   check("metadata template matches the confirmed USOL details", () => {
     loadMetadataTemplate();
+  });
+
+  check("changed wallet assignments are refused before registration", () => {
+    assert.deepStrictEqual(
+      config.assertConfirmedWallets(),
+      config.CONFIRMED_WALLETS
+    );
+
+    assert.throws(
+      () =>
+        config.assertConfirmedWallets({
+          ...config.WALLETS,
+          mintAuthority: Keypair.generate().publicKey.toBase58()
+        }),
+      /differ from the confirmed Mainnet assignments/
+    );
+
+    const state = loadState();
+    assert.strictEqual(assertStateWallets(state), state);
+    assert.throws(
+      () =>
+        assertStateWallets({
+          ...state,
+          wallets: {
+            ...state.wallets,
+            freezeAuthority: Keypair.generate().publicKey.toBase58()
+          }
+        }),
+      /differ from the confirmed assignments/
+    );
   });
 
   check("metadata URIs that are not https are rejected", () => {

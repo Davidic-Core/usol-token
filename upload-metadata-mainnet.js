@@ -17,7 +17,7 @@ const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
 
-const { PublicKey } = require("@solana/web3.js");
+const { Keypair, PublicKey } = require("@solana/web3.js");
 const { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } = require("@solana/spl-token");
 
 const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
@@ -31,7 +31,7 @@ const {
 } = require("@metaplex-foundation/umi-uploader-irys/node");
 
 const config = require("./config/mainnet");
-const { loadState, saveState } = require("./lib/state");
+const { loadState, saveState, assertStateWallets } = require("./lib/state");
 const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
@@ -40,7 +40,12 @@ const {
 } = require("./lib/wallets");
 const { assertMainnetRpc } = require("./lib/rpc");
 const { assertMintOnChain, assertHolderTokenAccount } = require("./lib/verify");
-const { heading, confirmExecution } = require("./lib/cli");
+const {
+  heading,
+  confirmExecution,
+  wantsExecution
+} = require("./lib/cli");
+const { assertExecutionWallets } = require("./lib/preflight");
 
 const RESOLVED_METADATA_PATH = path.join(
   path.dirname(config.STATE_PATH),
@@ -87,8 +92,8 @@ function loadUploadKeypair() {
   return feePayer;
 }
 
-function createUmiWithWallet(keypair) {
-  const umi = createUmi(config.resolveRpcUrl());
+function createUmiWithWallet(keypair, rpcUrl) {
+  const umi = createUmi(rpcUrl);
 
   const signer = createSignerFromKeypair(
     umi,
@@ -150,9 +155,8 @@ async function main() {
 
   heading("UnitedSOLANA (USOL) — Mainnet logo and metadata upload");
 
-  config.assertValidWallets();
-
   const state = loadState();
+  assertExecutionWallets(state);
 
   console.log(`Network            Solana Mainnet (${config.NETWORK})`);
   console.log(`Storage            Irys Mainnet (${config.IRYS_ADDRESS})`);
@@ -183,7 +187,7 @@ async function main() {
   }
 
   const metadata = buildMetadata();
-  const rpcUrl = config.resolveRpcUrl();
+  const rpcUrl = config.resolveRpcUrl({ execute: wantsExecution() });
   const connection = config.createConnection(rpcUrl);
 
   console.log("\nVerifying the recorded mint on Mainnet…");
@@ -208,7 +212,7 @@ async function main() {
   if (keypairError) {
     console.log(`\nNOT READY: ${keypairError.message}`);
   } else {
-    const umi = createUmiWithWallet(keypair);
+    const umi = createUmiWithWallet(keypair, rpcUrl);
     const estimate = await estimateCost(umi, logoBuffer, metadata);
 
     console.log(
@@ -239,10 +243,12 @@ async function main() {
       );
     }
 
+    assertExecutionWallets(current);
+    config.assertOfficialMainnetRpcUrl(rpcUrl);
     await assertMainnetRpc(connection);
     await verifyMintAndSupply(connection, current);
 
-    const umi = createUmiWithWallet(keypair);
+    const umi = createUmiWithWallet(keypair, rpcUrl);
 
     const logoFile = createGenericFile(logoBuffer, "logo.png", {
       contentType: "image/png"
@@ -348,6 +354,23 @@ function selfTest() {
     const state = loadState();
     assert.strictEqual(state.mintAddress, null);
     assert.strictEqual(state.metadataUri, null);
+  });
+
+  check("a deployment record with changed wallets would be refused before uploading", () => {
+    const state = loadState();
+    assert.strictEqual(assertStateWallets(state), state);
+
+    assert.throws(
+      () =>
+        assertStateWallets({
+          ...state,
+          wallets: {
+            ...state.wallets,
+            feePayer: Keypair.generate().publicKey.toBase58()
+          }
+        }),
+      /differ from the confirmed assignments/
+    );
   });
 
   check("the holder token account is derived deterministically per mint and holder", () => {

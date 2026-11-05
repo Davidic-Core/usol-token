@@ -32,7 +32,7 @@ const {
 } = require("@solana/spl-token");
 
 const config = require("./config/mainnet");
-const { loadState, saveState } = require("./lib/state");
+const { loadState, saveState, assertStateWallets } = require("./lib/state");
 const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
@@ -43,11 +43,22 @@ const {
 const { buildLaunchTransaction } = require("./lib/launch-transaction");
 const { assertMainnetRpc, feeForTransaction } = require("./lib/rpc");
 const {
+  assertExecutionWallets,
+  assertSupplyPlan,
+  assertLaunchTransaction,
+  assertFunding
+} = require("./lib/preflight");
+const {
   assertMintOnChain,
   assertHolderTokenAccount,
   assertTokenAccountFields
 } = require("./lib/verify");
-const { heading, formatSol, confirmExecution } = require("./lib/cli");
+const {
+  heading,
+  formatSol,
+  confirmExecution,
+  wantsExecution
+} = require("./lib/cli");
 
 // Standard rent-exempt minimums, shown only when the RPC cannot be reached.
 const DEFAULT_MINT_RENT = 1_461_600;
@@ -67,26 +78,10 @@ function validateConfiguration() {
     problems.push(error.message);
   }
 
-  if (config.TOKEN.name !== "UnitedSOLANA" || config.TOKEN.symbol !== "USOL") {
-    problems.push(
-      `token must be UnitedSOLANA (USOL), found ${config.TOKEN.name} (${config.TOKEN.symbol})`
-    );
-  }
-
-  if (config.TOKEN.decimals !== 9) {
-    problems.push(`decimals must be 9, found ${config.TOKEN.decimals}`);
-  }
-
-  if (config.TOKEN.initialSupply !== 1_000_000_000n) {
-    problems.push(
-      `initial supply must be 1,000,000,000, found ${config.TOKEN.initialSupply}`
-    );
-  }
-
-  if (config.allocationTotal() !== config.TOKEN.initialSupply) {
-    problems.push(
-      `planned allocation totals ${config.allocationTotal()}, expected ${config.TOKEN.initialSupply}`
-    );
+  try {
+    assertSupplyPlan();
+  } catch (error) {
+    problems.push(error.message);
   }
 
   if (!fs.existsSync(config.LOGO_PATH)) {
@@ -250,22 +245,37 @@ function printPlan(preflight, keypairError) {
       : preflight.mintRent + preflight.ataRent + preflight.feeLamports;
 
   console.log("\nEstimated cost (paid by the fee payer):");
-  console.log(`  Mint account rent      ${formatSol(preflight.mintRent)}`);
-  console.log(`  Token account rent     ${formatSol(preflight.ataRent)}`);
+  console.log(
+    `  Mint account rent      ${formatSol(preflight.mintRent)} (${preflight.mintRent} lamports)`
+  );
+  console.log(
+    `  Token account rent     ${formatSol(preflight.ataRent)} (${preflight.ataRent} lamports)`
+  );
   console.log(
     `  Network fee            ${
       preflight.feeLamports === null
         ? "calculated at execution"
-        : formatSol(preflight.feeLamports)
+        : `${formatSol(preflight.feeLamports)} (${preflight.feeLamports} lamports)`
     }`
   );
   console.log(
     `  Total                  ${
       estimatedTotal === null
         ? "rent only until the RPC answers"
-        : formatSol(estimatedTotal)
+        : `${formatSol(estimatedTotal)} (${estimatedTotal} lamports)`
     }`
   );
+
+  if (estimatedTotal !== null && preflight.balance !== null) {
+    const shortfall = estimatedTotal - preflight.balance;
+    console.log(
+      `  Funding                ${
+        shortfall <= 0
+          ? "sufficient"
+          : `short by ${formatSol(shortfall)} (${shortfall} lamports)`
+      }`
+    );
+  }
 
   console.log("\nRequired signers:");
   console.log(`  Fee payer (pays)       ${describeKeypairFile(config.KEYPAIRS.feePayer)} — ${config.KEYPAIRS.feePayer}`);
@@ -284,6 +294,8 @@ function printPlan(preflight, keypairError) {
 // creating a second one. A mismatch stops everything.
 async function verifyRecordedDeployment(state, rpcUrl) {
   const connection = config.createConnection(rpcUrl);
+
+  assertExecutionWallets(state);
 
   heading("Existing Mainnet deployment found");
   console.log(`Recorded mint      ${state.mintAddress}`);
@@ -438,16 +450,23 @@ async function recoverInterruptedLaunch(connection, mintKeypair) {
   saveState(state);
 }
 
-async function executeLaunch({ connection, keypairs, state }) {
+async function executeLaunch({ connection, rpcUrl, keypairs, state }) {
+  // Fail closed before anything is written, signed or sent: endpoint, wallets,
+  // supply, fee, balance and the compiled transaction all have to match the
+  // confirmed launch first. Every failure below aborts without spending SOL.
+  config.assertOfficialMainnetRpcUrl(rpcUrl);
+  assertExecutionWallets(state);
+  const rawAmount = assertSupplyPlan();
+
+  console.log("\nConfirming Solana Mainnet before building the transaction…");
+  await assertMainnetRpc(connection);
+
   const { mintKeypair, recovering } = await resolveMintKeypair(connection);
 
   if (recovering) {
     await recoverInterruptedLaunch(connection, mintKeypair);
     return;
   }
-
-  console.log("\nConfirming Solana Mainnet before building the transaction…");
-  await assertMainnetRpc(connection);
 
   const mintRent = await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
   const ataRent = await connection.getMinimumBalanceForRentExemption(ATA_SIZE);
@@ -459,27 +478,43 @@ async function executeLaunch({ connection, keypairs, state }) {
     freezeAuthority: new PublicKey(config.WALLETS.freezeAuthority),
     holder: new PublicKey(config.WALLETS.initialHolder),
     decimals: config.TOKEN.decimals,
-    rawAmount: config.rawInitialSupply(),
+    rawAmount,
+    mintRentLamports: mintRent
+  });
+
+  const expectedMintAuthority = new PublicKey(config.WALLETS.mintAuthority);
+  const expectedFreezeAuthority = new PublicKey(config.WALLETS.freezeAuthority);
+  const expectedHolder = new PublicKey(config.WALLETS.initialHolder);
+
+  assertLaunchTransaction(transaction, {
+    mint,
+    feePayer: keypairs.feePayer.publicKey,
+    mintAuthority: expectedMintAuthority,
+    freezeAuthority: expectedFreezeAuthority,
+    holder: expectedHolder,
+    decimals: config.TOKEN.decimals,
+    rawAmount,
     mintRentLamports: mintRent
   });
 
   // Fee for this exact message: three signatures and four instructions.
   const { feeLamports } = await feeForTransaction(connection, transaction);
-  const requiredLamports = mintRent + ataRent + feeLamports;
   const balance = await connection.getBalance(
     keypairs.feePayer.publicKey,
     "confirmed"
   );
 
+  const { requiredLamports } = assertFunding({
+    mintRentLamports: mintRent,
+    ataRentLamports: ataRent,
+    feeLamports,
+    balance,
+    feePayer: config.WALLETS.feePayer
+  });
+
   console.log(`Network fee for this transaction: ${formatSol(feeLamports)}`);
   console.log(`Total required: ${formatSol(requiredLamports)}`);
   console.log(`Fee payer balance: ${formatSol(balance)}`);
-
-  if (balance < requiredLamports) {
-    throw new Error(
-      `Fee payer holds ${formatSol(balance)} but the launch needs ${formatSol(requiredLamports)}. Nothing was submitted.`
-    );
-  }
 
   console.log("\nSimulating against Mainnet (no state change)…");
 
@@ -521,7 +556,7 @@ async function main() {
     return selfTest();
   }
 
-  const rpcUrl = config.resolveRpcUrl();
+  const rpcUrl = config.resolveRpcUrl({ execute: wantsExecution() });
 
   validateConfiguration();
   printConfiguration(rpcUrl);
@@ -572,6 +607,7 @@ async function main() {
 
     await executeLaunch({
       connection,
+      rpcUrl,
       keypairs,
       state: currentState
     });
@@ -603,6 +639,19 @@ async function selfTest() {
       results.push({ ok: true, label });
     } catch (error) {
       results.push({ ok: false, label: `${label}: ${error.message}` });
+    }
+  };
+
+  // Runs `fn` with USOL_RPC_URL set, restoring the previous value afterwards.
+  const withRpcOverride = (value, fn) => {
+    const original = process.env.USOL_RPC_URL;
+    process.env.USOL_RPC_URL = value;
+
+    try {
+      return fn();
+    } finally {
+      if (original === undefined) delete process.env.USOL_RPC_URL;
+      else process.env.USOL_RPC_URL = original;
     }
   };
 
@@ -809,6 +858,187 @@ async function selfTest() {
       if (original === undefined) delete process.env.USOL_RPC_URL;
       else process.env.USOL_RPC_URL = original;
     }
+  });
+
+  check("only the exact official HTTPS Mainnet origin is accepted", () => {
+    assert.strictEqual(
+      withRpcOverride("https://api.mainnet-beta.solana.com", () =>
+        config.resolveRpcUrl()
+      ),
+      config.MAINNET_RPC_URL
+    );
+
+    assert.strictEqual(
+      withRpcOverride("https://api.mainnet-beta.solana.com/", () =>
+        config.resolveRpcUrl()
+      ),
+      config.MAINNET_RPC_URL
+    );
+
+    for (const rejected of [
+      "http://api.mainnet-beta.solana.com",
+      "https://api.mainnet-beta.solana.com:9443",
+      "https://api.mainnet-beta.solana.com/rpc",
+      "https://api.mainnet-beta.solana.com.evil.example",
+      "https://user:pass@api.mainnet-beta.solana.com"
+    ]) {
+      assert.throws(
+        () => withRpcOverride(rejected, () => config.resolveRpcUrl()),
+        /refusing/,
+        `${rejected} must be refused`
+      );
+    }
+  });
+
+  check("localhost and 127.0.0.1 are allowed only for non-submitting runs", () => {
+    for (const local of ["http://localhost:8899", "http://127.0.0.1:8899"]) {
+      assert.strictEqual(
+        withRpcOverride(local, () => config.resolveRpcUrl()),
+        local,
+        `${local} is allowed for a dry run`
+      );
+
+      assert.throws(
+        () =>
+          withRpcOverride(local, () => config.resolveRpcUrl({ execute: true })),
+        /Live execution requires/,
+        `${local} must be refused when execution is requested`
+      );
+    }
+  });
+
+  check("a changed confirmed wallet assignment is refused", () => {
+    assert.deepStrictEqual(
+      config.assertConfirmedWallets(),
+      config.CONFIRMED_WALLETS
+    );
+
+    for (const role of [
+      "feePayer",
+      "initialHolder",
+      "mintAuthority",
+      "freezeAuthority"
+    ]) {
+      const swapped = {
+        ...config.WALLETS,
+        [role]: Keypair.generate().publicKey.toBase58()
+      };
+
+      assert.throws(
+        () => config.assertConfirmedWallets(swapped),
+        /differ from the confirmed Mainnet assignments/,
+        `${role} must not be swappable`
+      );
+    }
+  });
+
+  check("a deployment record with changed wallets is refused", () => {
+    const state = loadState();
+    assert.strictEqual(assertStateWallets(state), state);
+
+    const tampered = {
+      ...state,
+      wallets: {
+        ...state.wallets,
+        initialHolder: Keypair.generate().publicKey.toBase58()
+      }
+    };
+
+    assert.throws(
+      () => assertStateWallets(tampered),
+      /differ from the confirmed assignments/
+    );
+  });
+
+  check("a launch transaction with a changed authority or amount is refused", () => {
+    const confirmed = {
+      feePayer: feePayer.publicKey,
+      mintAuthority: mintAuthority.publicKey,
+      freezeAuthority: freezeAuthority.publicKey,
+      holder,
+      decimals,
+      rawAmount,
+      mintRentLamports
+    };
+
+    // The transaction the script builds passes the gate.
+    assert.strictEqual(
+      assertLaunchTransaction(transaction, { ...confirmed, mint: mintKeypair.publicKey }).toBase58(),
+      associatedTokenAccount.toBase58()
+    );
+
+    // An authority that is not the confirmed one is refused.
+    const otherAuthority = Keypair.generate().publicKey;
+    assert.throws(
+      () =>
+        assertLaunchTransaction(transaction, {
+          ...confirmed,
+          mint: mintKeypair.publicKey,
+          mintAuthority: otherAuthority
+        }),
+      /mint authority/
+    );
+
+    // A supply that is not the confirmed 1,000,000,000 USOL is refused.
+    assert.throws(
+      () =>
+        assertLaunchTransaction(transaction, {
+          ...confirmed,
+          mint: mintKeypair.publicKey,
+          rawAmount: rawAmount + 1n
+        }),
+      /minted amount/
+    );
+
+    const changedHolder = Keypair.generate().publicKey;
+    assert.throws(
+      () =>
+        assertLaunchTransaction(transaction, {
+          ...confirmed,
+          mint: mintKeypair.publicKey,
+          holder: changedHolder
+        }),
+      /token account/
+    );
+  });
+
+  check("the fee payer must cover rent and fee before signing", () => {
+    const fee = 5_000;
+    const requiredLamports = DEFAULT_MINT_RENT + DEFAULT_ATA_RENT + fee;
+
+    const approved = assertFunding({
+      mintRentLamports: DEFAULT_MINT_RENT,
+      ataRentLamports: DEFAULT_ATA_RENT,
+      feeLamports: fee,
+      balance: requiredLamports,
+      feePayer: config.WALLETS.feePayer
+    });
+
+    assert.strictEqual(approved.requiredLamports, requiredLamports);
+
+    assert.throws(
+      () =>
+        assertFunding({
+          mintRentLamports: DEFAULT_MINT_RENT,
+          ataRentLamports: DEFAULT_ATA_RENT,
+          feeLamports: fee,
+          balance: requiredLamports - 1,
+          feePayer: config.WALLETS.feePayer
+        }),
+      /holds/
+    );
+
+    assert.throws(
+      () =>
+        assertFunding({
+          mintRentLamports: DEFAULT_MINT_RENT,
+          ataRentLamports: DEFAULT_ATA_RENT,
+          feeLamports: null,
+          balance: requiredLamports,
+          feePayer: config.WALLETS.feePayer
+        }),
+      /network fee/
+    );
   });
 
   await checkAsync("the Mainnet genesis hash is required and other clusters are refused", async () => {

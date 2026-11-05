@@ -75,10 +75,12 @@ All values live in one place, `config/mainnet.js`:
 -   The confirmation phrase required before any transaction is sent.
 
 Wallet addresses are validated strictly: base58, exactly 32 bytes, canonical
-re-encoding and on the ed25519 curve. A malformed or substituted address stops
-every script. `USOL_RPC_URL` may only point at the official Mainnet endpoint or a
-local validator; any other network is rejected at startup, and every execution
-additionally checks the cluster's genesis hash.
+re-encoding and on the ed25519 curve — and, beyond validity, they are compared
+exactly with the four confirmed assignments before every run. A malformed or
+substituted address stops every script. `USOL_RPC_URL` may only be the official
+HTTPS Mainnet origin or a local validator for a non-submitting dry run; a local
+endpoint is refused when `--execute` is used, any other network is rejected at
+startup, and every execution additionally checks the cluster's genesis hash.
 
 ## Project Scripts
 
@@ -102,6 +104,9 @@ additionally checks the cluster's genesis hash.
   `lib/rpc.js`                    Mainnet genesis check and message-based fee
                                   calculation
 
+  `lib/preflight.js`              Fail-closed execution gate: endpoint, wallet
+                                  pin, supply, transaction, fee and balance
+
   `lib/verify.js`                 On-chain mint, authority, supply and token
                                   account verification
 
@@ -123,14 +128,22 @@ network request and spend nothing.
 
 ## Safety Behaviour
 
--   **Mainnet only.** The RPC host is restricted to the official endpoint (or a
-    local validator for dry runs), and every execution re-checks the genesis
-    hash before building or sending a transaction.
+-   **Mainnet only.** The RPC must be exactly
+    `https://api.mainnet-beta.solana.com` — HTTPS, the official origin, no
+    alternative port, path or look-alike host. A local validator
+    (`localhost` / `127.0.0.1`) is accepted for non-submitting dry runs only and
+    is refused outright as soon as `--execute` is requested. Every execution
+    re-checks the genesis hash before building or sending a transaction.
 -   **Fees are calculated, not assumed.** The fee comes from
     `getFeeForMessage` on the exact transaction message that will be sent. If the
     RPC cannot price it, the scripts refuse to continue.
--   **Strict wallet validation.** Every configured wallet must be a canonical,
-    on-curve ed25519 address; the fee payer cannot also be a token authority.
+-   **Exact wallet pinning.** The four confirmed assignments are a frozen literal
+    in `config/mainnet.js` and are compared byte for byte with the active
+    configuration and with `deployments/mainnet.json` before any signing step. A
+    valid but different Solana address is still refused.
+-   **Strict wallet validation.** Every configured wallet must also be a
+    canonical, on-curve ed25519 address; the fee payer cannot also be a token
+    authority.
 -   **Authorities are passed separately.** The mint and freeze authorities are
     independent arguments and are written independently (both are HxDW by
     assignment).
@@ -141,6 +154,9 @@ network request and spend nothing.
 -   **Verified mint before upload.** Metadata cannot be uploaded until the
     recorded mint, both authorities, the full supply and the holder's token
     account all verify on-chain.
+-   **Everything is checked before anything is signed.** Endpoint, wallets,
+    supply, the compiled transaction, fee and balance are all verified in that
+    order; a failure aborts the run without spending SOL.
 -   **No duplicate or interrupted launches.** A lock file stops concurrent runs.
     A recorded mint is verified rather than re-created, and a mint keypair whose
     account already exists on-chain is recovered and verified instead of starting

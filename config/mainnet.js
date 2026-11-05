@@ -17,6 +17,12 @@ const { Connection, PublicKey } = require("@solana/web3.js");
 const NETWORK = "mainnet-beta";
 const MAINNET_RPC_URL = "https://api.mainnet-beta.solana.com";
 
+// The only endpoint live execution may use: HTTPS and exactly this origin.
+const MAINNET_RPC_ORIGIN = "https://api.mainnet-beta.solana.com";
+
+// A local validator is allowed for dry runs that never submit a transaction.
+const LOCAL_RPC_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
 // The genesis hash identifies the Mainnet cluster. An RPC that reports any
 // other value is not Solana Mainnet, whatever hostname it was reached through.
 const MAINNET_GENESIS_HASH =
@@ -33,14 +39,24 @@ const TOKEN = {
     "UnitedSOLANA (USOL) is a high-speed community and utility token built on the Solana blockchain. Designed to facilitate seamless decentralized trading, liquidity pairing, and ecosystem transaction fees across Solana dApps"
 };
 
-// Confirmed wallet assignments. Do not change these.
+// The four assignments confirmed by the project owner. This literal is the
+// pin: `WALLETS` below must match it exactly before anything can run or sign.
+// Editing `WALLETS` alone is therefore not enough to move USOL to another
+// wallet, and the mismatch is reported as an error instead of being accepted.
 // The fee payer pays transaction fees and rents; the HxDW wallet is the initial
 // holder and keeps the mint and freeze authorities.
-const WALLETS = {
+const CONFIRMED_WALLETS = Object.freeze({
   feePayer: "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU",
   initialHolder: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
   mintAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
   freezeAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
+});
+
+const WALLETS = {
+  feePayer: CONFIRMED_WALLETS.feePayer,
+  initialHolder: CONFIRMED_WALLETS.initialHolder,
+  mintAuthority: CONFIRMED_WALLETS.mintAuthority,
+  freezeAuthority: CONFIRMED_WALLETS.freezeAuthority
 };
 
 // Planned distribution of the initial supply. This is a record only: the whole
@@ -156,9 +172,36 @@ function assertValidWalletAddress(value, label) {
   return key;
 }
 
+// Exact pin against the four confirmed assignments. Validity alone is not
+// enough: an address swap must stop every script, even when the replacement is
+// a perfectly valid Solana wallet.
+function assertConfirmedWallets(wallets = WALLETS) {
+  const problems = [];
+
+  for (const [key, label] of Object.entries(WALLET_LABELS)) {
+    if (wallets[key] !== CONFIRMED_WALLETS[key]) {
+      problems.push(
+        `${label} is ${String(wallets[key])}, confirmed ${CONFIRMED_WALLETS[key]}`
+      );
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(
+      `Wallet assignments differ from the confirmed Mainnet assignments:\n- ${problems.join(
+        "\n- "
+      )}\nRefusing to continue.`
+    );
+  }
+
+  return wallets;
+}
+
 // Every configured wallet is strictly validated, and the roles must not overlap
 // in a way that would let one wallet pay for and authorize its own token.
 function assertValidWallets() {
+  assertConfirmedWallets();
+
   for (const [key, label] of Object.entries(WALLET_LABELS)) {
     assertValidWalletAddress(WALLETS[key], label);
   }
@@ -185,36 +228,77 @@ function allocationTotal() {
   return ALLOCATION.reduce((total, entry) => total + entry.amount, 0n);
 }
 
-function isMainnetUrl(url) {
+// The exact official Mainnet origin: HTTPS, no credentials, no port of its own,
+// no path, query or fragment. Anything that merely contains the hostname (an
+// http URL, a look-alike domain, a different port, a proxy path) is refused.
+function isOfficialMainnetRpcUrl(url) {
+  let parsed;
+
   try {
-    return new URL(url).hostname === "api.mainnet-beta.solana.com";
+    parsed = new URL(url);
+  } catch (error) {
+    return false;
+  }
+
+  return (
+    parsed.protocol === "https:" &&
+    parsed.origin === MAINNET_RPC_ORIGIN &&
+    parsed.username === "" &&
+    parsed.password === "" &&
+    (parsed.pathname === "/" || parsed.pathname === "") &&
+    parsed.search === "" &&
+    parsed.hash === ""
+  );
+}
+
+function isLocalRpcUrl(url) {
+  try {
+    return LOCAL_RPC_HOSTS.has(new URL(url).hostname);
   } catch (error) {
     return false;
   }
 }
 
-// The official Mainnet endpoint. USOL_RPC_URL exists only so the owner can run
-// the scripts against a local validator for a dry run; anything else is refused
-// so the project cannot be pointed at another Solana network.
-function resolveRpcUrl() {
+// The official Mainnet endpoint only. USOL_RPC_URL exists solely so the owner can
+// run a local validator for a dry run that never submits; local endpoints are
+// refused outright as soon as live execution is requested, and every other
+// endpoint is refused always.
+function resolveRpcUrl({ execute = false } = {}) {
   const override = process.env.USOL_RPC_URL;
 
-  if (!override) return MAINNET_RPC_URL;
-
-  if (isMainnetUrl(override)) return override;
-
-  let hostname = null;
-  try {
-    hostname = new URL(override).hostname;
-  } catch (error) {
-    hostname = null;
+  if (!override) {
+    if (execute) assertOfficialMainnetRpcUrl(MAINNET_RPC_URL);
+    return MAINNET_RPC_URL;
   }
 
-  if (hostname === "localhost" || hostname === "127.0.0.1") return override;
+  if (isOfficialMainnetRpcUrl(override)) return MAINNET_RPC_URL;
+
+  if (isLocalRpcUrl(override)) {
+    const parsed = new URL(override);
+
+    if (execute) {
+      throw new Error(
+        `Live execution requires ${MAINNET_RPC_ORIGIN}; a local RPC (${parsed.hostname}) may only be used for non-submitting dry runs. Nothing was submitted.`
+      );
+    }
+
+    return override;
+  }
 
   throw new Error(
-    `USOL_RPC_URL may only be the official Mainnet endpoint or a local validator; refusing "${override}".`
+    `USOL_RPC_URL must be exactly ${MAINNET_RPC_ORIGIN} (https, official origin) or a local validator for a non-submitting dry run; refusing "${override}".`
   );
+}
+
+// Execution gate: the connection about to sign must be the official endpoint.
+function assertOfficialMainnetRpcUrl(url) {
+  if (!isOfficialMainnetRpcUrl(url)) {
+    throw new Error(
+      `Refusing to execute against "${url}": live execution requires exactly ${MAINNET_RPC_ORIGIN}. Nothing was signed or submitted.`
+    );
+  }
+
+  return MAINNET_RPC_URL;
 }
 
 // A public RPC can stall; every request is aborted after this long instead of
@@ -247,9 +331,11 @@ function explorerTransactionUrl(signature) {
 module.exports = {
   NETWORK,
   MAINNET_RPC_URL,
+  MAINNET_RPC_ORIGIN,
   MAINNET_GENESIS_HASH,
   TOKEN,
   WALLETS,
+  CONFIRMED_WALLETS,
   ALLOCATION,
   LOGO_PATH,
   METADATA_TEMPLATE_PATH,
@@ -261,10 +347,14 @@ module.exports = {
   METADATA_PROGRAM_ID,
   WALLET_LABELS,
   assertValidWalletAddress,
+  assertConfirmedWallets,
   assertValidWallets,
   rawInitialSupply,
   allocationTotal,
+  isOfficialMainnetRpcUrl,
+  isLocalRpcUrl,
   resolveRpcUrl,
+  assertOfficialMainnetRpcUrl,
   createConnection,
   explorerAddressUrl,
   explorerTransactionUrl
