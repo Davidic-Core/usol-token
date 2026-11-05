@@ -5,11 +5,12 @@ blockchain.
 
 ## Project Status
 
-**Network: Solana Mainnet — configuration and deployment scripts prepared.**
+**Network: Solana Mainnet — configuration, safety checks and deployment scripts
+prepared.**
 
-The USOL Mainnet mint has **not** been created. There is no Mainnet mint
-address or transaction signature yet: `deployments/mainnet.json` keeps
-`mintAddress` as `null` until a successful creation records the real value.
+The USOL Mainnet mint has **not** been created. There is no Mainnet mint address
+or transaction signature yet: `deployments/mainnet.json` keeps `mintAddress` as
+`null` until a successful creation records the real value.
 
 Test-network configuration and scripts have been removed. Solana Mainnet is the
 only network the active project supports.
@@ -46,17 +47,38 @@ separately: FRPP pays transaction fees, account rent and upload costs, while
 HxDW receives the initial supply and keeps the mint and freeze authorities. Both
 authorities stay active — nothing is revoked.
 
+## Planned Allocation
+
+The entire 1,000,000,000 USOL supply is minted into the HxDW wallet in one
+transaction. This plan is recorded in `config/mainnet.js` and
+`deployments/mainnet.json`; **no transfer, pool or distribution is performed by
+these scripts**.
+
+  Amount          Purpose
+  --------------- ------------------------------------------------------------
+  300,000,000     Initial liquidity reserve (future USOL/SOL and USOL/USDC pools)
+  250,000,000     Treasury and reserves
+  200,000,000     Ecosystem and community
+  150,000,000     Future distribution
+  100,000,000     Retained allocation
+  --------------- ------------------------------------------------------------
+  1,000,000,000   Total, all held by `HxDW…urT` after launch
+
 ## Mainnet Configuration
 
 All values live in one place, `config/mainnet.js`:
 
 -   RPC endpoint: `https://api.mainnet-beta.solana.com`
--   Token name, symbol, decimals and initial supply.
--   The four confirmed wallet assignments above.
+-   Mainnet genesis hash: `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d`
+-   Token name, symbol, standard, decimals and initial supply.
+-   The four confirmed wallet assignments and the planned allocation.
 -   The confirmation phrase required before any transaction is sent.
 
-`USOL_RPC_URL` may only point at the official Mainnet endpoint or a local
-validator; any other network is rejected at startup.
+Wallet addresses are validated strictly: base58, exactly 32 bytes, canonical
+re-encoding and on the ed25519 curve. A malformed or substituted address stops
+every script. `USOL_RPC_URL` may only point at the official Mainnet endpoint or a
+local validator; any other network is rejected at startup, and every execution
+additionally checks the cluster's genesis hash.
 
 ## Project Scripts
 
@@ -68,15 +90,26 @@ validator; any other network is rejected at startup.
                                   transaction
 
   `upload-metadata-mainnet.js`    Uploads the existing logo and the USOL
-                                  metadata to Irys on Mainnet
+                                  metadata to Irys on Mainnet (requires a
+                                  verified mint)
 
-  `register-metadata-mainnet.js`  Registers the Metaplex metadata for the
-                                  recorded Mainnet mint
+  `register-metadata-mainnet.js`  Registers the Metaplex metadata and verifies it
+                                  on-chain
 
-  `config/mainnet.js`             Network, token, wallet and keypair settings
+  `config/mainnet.js`             Network, genesis hash, token, wallet and
+                                  allocation settings
 
-  `lib/`                          Shared helpers: state record, keypair
-                                  loading, transaction builder, approval prompt
+  `lib/rpc.js`                    Mainnet genesis check and message-based fee
+                                  calculation
+
+  `lib/verify.js`                 On-chain mint, authority, supply and token
+                                  account verification
+
+  `lib/launch-transaction.js`     The atomic launch transaction builder
+
+  `lib/lock.js`                   One-run-at-a-time lock around each script
+
+  `lib/state.js`                  Deployment record read/write
 
   `deployments/mainnet.json`      Record of the actual mint address, token
                                   account, metadata account and signatures
@@ -88,6 +121,34 @@ what it can without changing anything and prints the plan and cost. Adding
 anything is signed or submitted. `--self-test` runs offline checks that make no
 network request and spend nothing.
 
+## Safety Behaviour
+
+-   **Mainnet only.** The RPC host is restricted to the official endpoint (or a
+    local validator for dry runs), and every execution re-checks the genesis
+    hash before building or sending a transaction.
+-   **Fees are calculated, not assumed.** The fee comes from
+    `getFeeForMessage` on the exact transaction message that will be sent. If the
+    RPC cannot price it, the scripts refuse to continue.
+-   **Strict wallet validation.** Every configured wallet must be a canonical,
+    on-curve ed25519 address; the fee payer cannot also be a token authority.
+-   **Authorities are passed separately.** The mint and freeze authorities are
+    independent arguments and are written independently (both are HxDW by
+    assignment).
+-   **Fail closed.** Metadata registration stops on any mismatch: wrong decimals,
+    wrong authorities, wrong supply, unreachable or malformed metadata URI,
+    existing metadata. Only a successful read-back of the on-chain metadata marks
+    the deployment ready.
+-   **Verified mint before upload.** Metadata cannot be uploaded until the
+    recorded mint, both authorities, the full supply and the holder's token
+    account all verify on-chain.
+-   **No duplicate or interrupted launches.** A lock file stops concurrent runs.
+    A recorded mint is verified rather than re-created, and a mint keypair whose
+    account already exists on-chain is recovered and verified instead of starting
+    a second mint.
+-   **Token account verification.** After launch the associated token account is
+    checked for the right mint, the right owner (HxDW) and the full
+    1,000,000,000 USOL balance.
+
 ## Deployment Order
 
 Run from the repository root after `npm install`:
@@ -96,27 +157,27 @@ Run from the repository root after `npm install`:
 # 0. Offline checks (no network, no SOL)
 npm run test:mainnet
 
-# 1. Validate configuration and estimate the cost (no transaction)
+# 1. Validate configuration, Mainnet genesis and cost (no transaction)
 node deploy-mainnet.js
 
 # 2. Fund FRPP with enough Mainnet SOL, then create the mint
 node deploy-mainnet.js --execute
 
-# 3. Upload the logo and metadata to Irys
+# 3. Upload the logo and metadata (requires the verified mint)
 node upload-metadata-mainnet.js --execute
 
-# 4. Register the Metaplex metadata
+# 4. Register the Metaplex metadata and verify it on-chain
 node register-metadata-mainnet.js --execute
 ```
 
 Each `--execute` run asks for the confirmation phrase
 (`LAUNCH USOL ON MAINNET`) and refuses to continue without it. After step 2 the
-real mint address is written to `deployments/mainnet.json`; steps 3 and 4 read
-it from there and refuse to run while it is `null`, so no placeholder or
-invented mint address can be used.
+real mint address is written to `deployments/mainnet.json`; steps 3 and 4 read it
+from there and refuse to run while it is `null`, so no placeholder or invented
+mint address can be used.
 
-There is deliberately no transfer script: USOL transfers are not part of the
-launch and will be added only when distribution is approved.
+There is deliberately no transfer script: USOL transfers and liquidity pools are
+not part of the launch and will be added only when distribution is approved.
 
 ## Keypairs
 
@@ -141,22 +202,39 @@ and refuses to continue otherwise.
 The new mint account needs its own keypair to sign account creation. The launch
 script generates it at execution time and writes it to
 `~/.config/unitedsolana/mainnet/mint-keypair.json` (mode 600) before sending the
-transaction, so a failed attempt can be retried instead of losing the address.
-That file never enters the repository.
+transaction, so an interrupted attempt can be recovered instead of losing the
+address. That file never enters the repository.
 
 Never commit wallet secret keys, private keys, seed phrases or credentials.
-`.gitignore` already excludes `*keypair*.json`, `*.key`, `*.pem` and `.env`
-files. The website never asks for a seed phrase or private key.
+`.gitignore` already excludes `*keypair*.json`, `fee-payer.json`,
+`authority.json`, `*.key`, `*.pem` and `.env` files. The website never asks for a
+seed phrase or private key.
 
 ## Deployment Record
 
 `deployments/mainnet.json` is the single place the real Mainnet values are
-recorded after each step:
+recorded:
 
 -   `mintAddress` — the actual mint, filled in only after creation is confirmed.
 -   `associatedTokenAccount` — the holder's token account.
 -   `imageUri`, `metadataUri` — uploaded logo and metadata.
 -   `metadataAccount`, `transactions.mintCreation`, `transactions.metadataRegistration` — Metaplex account and signatures.
+-   `plannedAllocation` — the recorded distribution plan, not an executed transfer.
+-   `status` — `not-created` → `mint-created` → `mint-verified` →
+    `metadata-uploaded` → `metadata-registration-needs-review` →
+    `mint-and-metadata-verified`. A `mint-created-needs-review` status means the
+    mint exists but failed verification.
+
+## Tests
+
+``` bash
+npm run test:mainnet
+```
+
+Runs the offline self-tests for all three scripts: configuration and allocation,
+strict wallet validation, genesis-hash enforcement, message-based fee
+calculation, launch instruction layout and authorities, signature set, and
+metadata instruction wiring. They make no network request and spend nothing.
 
 ## Wallet Interface (Phase 1)
 
@@ -230,7 +308,8 @@ npm install
 -   [x] Prepare the Mainnet token configuration
 -   [x] Remove test-network configuration and scripts
 -   [x] Prepare Mainnet launch, upload and metadata scripts
--   [x] Offline self-tests for configuration and transaction building
+-   [x] Enforce Mainnet genesis validation and message-based fees
+-   [x] Offline self-tests for configuration, validation and transaction building
 -   [ ] Owner approval to execute the launch
 -   [ ] Fund FRPP with Mainnet SOL
 -   [ ] Create the USOL Mainnet mint and initial supply

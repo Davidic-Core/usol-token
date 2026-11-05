@@ -17,6 +17,11 @@ const { Connection, PublicKey } = require("@solana/web3.js");
 const NETWORK = "mainnet-beta";
 const MAINNET_RPC_URL = "https://api.mainnet-beta.solana.com";
 
+// The genesis hash identifies the Mainnet cluster. An RPC that reports any
+// other value is not Solana Mainnet, whatever hostname it was reached through.
+const MAINNET_GENESIS_HASH =
+  "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d";
+
 // Token details, exactly as confirmed for the Mainnet launch.
 const TOKEN = {
   name: "UnitedSOLANA",
@@ -37,6 +42,37 @@ const WALLETS = {
   mintAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
   freezeAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
 };
+
+// Planned distribution of the initial supply. This is a record only: the whole
+// supply is minted to the HxDW wallet and nothing is transferred or pooled by
+// the deployment scripts.
+const ALLOCATION = [
+  {
+    key: "liquidityReserve",
+    label: "Initial liquidity reserve (future USOL/SOL and USOL/USDC pools)",
+    amount: 300_000_000n
+  },
+  {
+    key: "treasury",
+    label: "Treasury and reserves",
+    amount: 250_000_000n
+  },
+  {
+    key: "ecosystem",
+    label: "Ecosystem and community",
+    amount: 200_000_000n
+  },
+  {
+    key: "distribution",
+    label: "Future distribution",
+    amount: 150_000_000n
+  },
+  {
+    key: "retained",
+    label: "Retained allocation",
+    amount: 100_000_000n
+  }
+];
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 
@@ -75,6 +111,79 @@ const IRYS_ADDRESS = process.env.USOL_IRYS_ADDRESS || "https://node1.irys.xyz";
 const CONFIRMATION_PHRASE = "LAUNCH USOL ON MAINNET";
 
 const METADATA_PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
+
+const WALLET_LABELS = {
+  feePayer: "fee payer",
+  initialHolder: "initial holder",
+  mintAuthority: "mint authority",
+  freezeAuthority: "freeze authority"
+};
+
+const BASE58_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+// Strict wallet validation. A wallet address must be base58, decode to exactly
+// 32 bytes, re-encode to the identical string (no truncated or non-canonical
+// encodings) and lie on the ed25519 curve, i.e. be a real wallet rather than a
+// program-derived address.
+function assertValidWalletAddress(value, label) {
+  if (typeof value !== "string" || !BASE58_PATTERN.test(value)) {
+    throw new Error(
+      `${label} is not a base58 Solana address: ${String(value)}`
+    );
+  }
+
+  let key;
+  try {
+    key = new PublicKey(value);
+  } catch (error) {
+    throw new Error(`${label} is not a valid Solana public key: ${value}`);
+  }
+
+  if (key.toBase58() !== value) {
+    throw new Error(`${label} is not canonically encoded base58: ${value}`);
+  }
+
+  if (key.toBytes().length !== 32) {
+    throw new Error(`${label} does not decode to 32 bytes: ${value}`);
+  }
+
+  if (!PublicKey.isOnCurve(key.toBytes())) {
+    throw new Error(
+      `${label} is not an on-curve ed25519 wallet address: ${value}`
+    );
+  }
+
+  return key;
+}
+
+// Every configured wallet is strictly validated, and the roles must not overlap
+// in a way that would let one wallet pay for and authorize its own token.
+function assertValidWallets() {
+  for (const [key, label] of Object.entries(WALLET_LABELS)) {
+    assertValidWalletAddress(WALLETS[key], label);
+  }
+
+  if (WALLETS.feePayer === WALLETS.initialHolder) {
+    throw new Error("fee payer and initial holder must be different wallets");
+  }
+
+  if (
+    WALLETS.feePayer === WALLETS.mintAuthority ||
+    WALLETS.feePayer === WALLETS.freezeAuthority
+  ) {
+    throw new Error("the fee payer must not act as a token authority");
+  }
+
+  return WALLETS;
+}
+
+function rawInitialSupply() {
+  return TOKEN.initialSupply * 10n ** BigInt(TOKEN.decimals);
+}
+
+function allocationTotal() {
+  return ALLOCATION.reduce((total, entry) => total + entry.amount, 0n);
+}
 
 function isMainnetUrl(url) {
   try {
@@ -127,15 +236,6 @@ function createConnection(rpcUrl) {
   });
 }
 
-function isValidAddress(value) {
-  try {
-    new PublicKey(value);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
 function explorerAddressUrl(address) {
   return `https://explorer.solana.com/address/${address}`;
 }
@@ -147,8 +247,10 @@ function explorerTransactionUrl(signature) {
 module.exports = {
   NETWORK,
   MAINNET_RPC_URL,
+  MAINNET_GENESIS_HASH,
   TOKEN,
   WALLETS,
+  ALLOCATION,
   LOGO_PATH,
   METADATA_TEMPLATE_PATH,
   STATE_PATH,
@@ -157,9 +259,13 @@ module.exports = {
   IRYS_ADDRESS,
   CONFIRMATION_PHRASE,
   METADATA_PROGRAM_ID,
+  WALLET_LABELS,
+  assertValidWalletAddress,
+  assertValidWallets,
+  rawInitialSupply,
+  allocationTotal,
   resolveRpcUrl,
   createConnection,
-  isValidAddress,
   explorerAddressUrl,
   explorerTransactionUrl
 };

@@ -14,6 +14,9 @@ authority.json
 *.pem
 *.key
 
+# Transient deployment run locks
+deployments/.*.lock
+
 # Logs and build output
 *.log
 dist/

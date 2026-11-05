@@ -7,12 +7,18 @@
 // Mainnet, then records the resulting image and metadata URIs in
 // deployments/mainnet.json for the registration step.
 //
+// The mint must already exist and verify on-chain before anything is uploaded:
+// metadata without a confirmed mint would describe a token that is not there.
+//
 // Dry run by default. `--execute` (plus the confirmation phrase) uploads and
-// spends a small amount of Mainnet SOL to fund the upload.
+// spends a small amount of Mainnet SOL.
 
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
+
+const { PublicKey } = require("@solana/web3.js");
+const { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } = require("@solana/spl-token");
 
 const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
 const {
@@ -26,11 +32,14 @@ const {
 
 const config = require("./config/mainnet");
 const { loadState, saveState } = require("./lib/state");
+const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
   assertAddress,
   describeKeypairFile
 } = require("./lib/wallets");
+const { assertMainnetRpc } = require("./lib/rpc");
+const { assertMintOnChain, assertHolderTokenAccount } = require("./lib/verify");
 const { heading, confirmExecution } = require("./lib/cli");
 
 const RESOLVED_METADATA_PATH = path.join(
@@ -52,6 +61,24 @@ function buildMetadata() {
       category: "image"
     }
   };
+}
+
+function loadMetadataTemplate() {
+  const metadata = JSON.parse(
+    fs.readFileSync(config.METADATA_TEMPLATE_PATH, "utf8")
+  );
+
+  if (
+    metadata.name !== config.TOKEN.name ||
+    metadata.symbol !== config.TOKEN.symbol ||
+    metadata.description !== config.TOKEN.description
+  ) {
+    throw new Error(
+      "metadata.json does not carry the confirmed USOL name, symbol and description."
+    );
+  }
+
+  return metadata;
 }
 
 function loadUploadKeypair() {
@@ -93,12 +120,37 @@ async function estimateCost(umi, logoBuffer, metadata) {
   }
 }
 
+// The mint, the holder's token account and the full supply must all verify
+// before metadata can describe this token.
+async function verifyMintAndSupply(connection, state) {
+  await assertMintOnChain(connection, state.mintAddress);
+
+  const tokenAccountAddress =
+    state.associatedTokenAccount ||
+    getAssociatedTokenAddressSync(
+      new PublicKey(state.mintAddress),
+      new PublicKey(config.WALLETS.initialHolder),
+      false,
+      TOKEN_PROGRAM_ID
+    ).toBase58();
+
+  await assertHolderTokenAccount(connection, {
+    mintAddress: state.mintAddress,
+    tokenAccountAddress,
+    expectedAmount: config.rawInitialSupply()
+  });
+
+  return tokenAccountAddress;
+}
+
 async function main() {
   if (process.argv.includes("--self-test")) {
     return selfTest();
   }
 
   heading("UnitedSOLANA (USOL) — Mainnet logo and metadata upload");
+
+  config.assertValidWallets();
 
   const state = loadState();
 
@@ -108,6 +160,21 @@ async function main() {
   console.log(`Name               ${config.TOKEN.name}`);
   console.log(`Symbol             ${config.TOKEN.symbol}`);
   console.log(`Description        ${config.TOKEN.description}`);
+  console.log(`Mint               ${state.mintAddress || "not created yet"}`);
+
+  if (!state.mintAddress) {
+    throw new Error(
+      "No verified Mainnet mint is recorded in deployments/mainnet.json. Uploading metadata before the mint exists is refused; create and verify the mint first (node deploy-mainnet.js --execute)."
+    );
+  }
+
+  if (state.metadataUri) {
+    throw new Error(
+      `A metadata URI is already recorded: ${state.metadataUri}. Refusing to upload a second copy. Clear it only after confirming the recorded upload is unusable.`
+    );
+  }
+
+  loadMetadataTemplate();
 
   const logoBuffer = fs.readFileSync(config.LOGO_PATH);
 
@@ -116,6 +183,14 @@ async function main() {
   }
 
   const metadata = buildMetadata();
+  const rpcUrl = config.resolveRpcUrl();
+  const connection = config.createConnection(rpcUrl);
+
+  console.log("\nVerifying the recorded mint on Mainnet…");
+  const tokenAccountAddress = await verifyMintAndSupply(connection, state);
+  console.log(`  Mint verified      ${state.mintAddress}`);
+  console.log(`  Token account      ${tokenAccountAddress}`);
+  console.log(`  Supply in holder   ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL`);
 
   let keypair = null;
   let keypairError = null;
@@ -127,7 +202,7 @@ async function main() {
   }
 
   console.log(
-    `Fee payer keypair  ${describeKeypairFile(config.KEYPAIRS.feePayer)} — ${config.KEYPAIRS.feePayer}`
+    `\nFee payer keypair  ${describeKeypairFile(config.KEYPAIRS.feePayer)} — ${config.KEYPAIRS.feePayer}`
   );
 
   if (keypairError) {
@@ -143,14 +218,6 @@ async function main() {
     );
   }
 
-  if (state.metadataUri) {
-    console.log(
-      `\nA metadata URI is already recorded: ${state.metadataUri}\nRefusing to upload again. Clear it to start over.`
-    );
-    process.exitCode = 1;
-    return;
-  }
-
   const approved = await confirmExecution({
     action: "upload the USOL logo and metadata to Irys on Mainnet"
   });
@@ -161,56 +228,74 @@ async function main() {
     throw new Error(`${keypairError.message} Nothing was uploaded.`);
   }
 
-  const umi = createUmiWithWallet(keypair);
+  await withDeploymentLock("metadata-upload", async () => {
+    // Re-read and re-verify inside the lock so a concurrent run cannot change
+    // the record between validation and upload.
+    const current = loadState();
 
-  const logoFile = createGenericFile(logoBuffer, "logo.png", {
-    contentType: "image/png"
-  });
+    if (current.metadataUri) {
+      throw new Error(
+        `A metadata URI is already recorded: ${current.metadataUri}. Nothing was uploaded.`
+      );
+    }
 
-  console.log("\nUploading logo…");
-  const [imageUri] = await umi.uploader.upload([logoFile]);
-  console.log(`Logo uploaded: ${imageUri}`);
+    await assertMainnetRpc(connection);
+    await verifyMintAndSupply(connection, current);
 
-  metadata.image = imageUri;
-  metadata.properties.files = [{ uri: imageUri, type: "image/png" }];
+    const umi = createUmiWithWallet(keypair);
 
-  console.log("\nUploading metadata JSON…");
-  const metadataUri = await umi.uploader.uploadJson(metadata);
-  console.log(`Metadata uploaded: ${metadataUri}`);
+    const logoFile = createGenericFile(logoBuffer, "logo.png", {
+      contentType: "image/png"
+    });
 
-  const response = await fetch(metadataUri);
+    console.log("\nUploading logo…");
+    const [imageUri] = await umi.uploader.upload([logoFile]);
+    console.log(`Logo uploaded: ${imageUri}`);
 
-  if (!response.ok) {
-    throw new Error(
-      `Metadata upload verification failed: HTTP ${response.status} for ${metadataUri}`
+    metadata.image = imageUri;
+    metadata.properties.files = [{ uri: imageUri, type: "image/png" }];
+
+    console.log("\nUploading metadata JSON…");
+    const metadataUri = await umi.uploader.uploadJson(metadata);
+    console.log(`Metadata uploaded: ${metadataUri}`);
+
+    const response = await fetch(metadataUri);
+
+    if (!response.ok) {
+      throw new Error(
+        `Metadata upload verification failed: HTTP ${response.status} for ${metadataUri}`
+      );
+    }
+
+    const verified = await response.json();
+
+    if (
+      verified.name !== config.TOKEN.name ||
+      verified.symbol !== config.TOKEN.symbol ||
+      verified.image !== imageUri ||
+      verified.description !== config.TOKEN.description
+    ) {
+      throw new Error(
+        "Uploaded metadata did not read back with the expected name, symbol, description and image."
+      );
+    }
+
+    current.imageUri = imageUri;
+    current.metadataUri = metadataUri;
+    current.status = "metadata-uploaded";
+    saveState(current);
+
+    fs.mkdirSync(path.dirname(RESOLVED_METADATA_PATH), { recursive: true });
+    fs.writeFileSync(
+      RESOLVED_METADATA_PATH,
+      `${JSON.stringify(metadata, null, 2)}\n`
     );
-  }
 
-  const verified = await response.json();
-
-  if (
-    verified.name !== config.TOKEN.name ||
-    verified.symbol !== config.TOKEN.symbol ||
-    verified.image !== imageUri
-  ) {
-    throw new Error("Uploaded metadata did not read back with the expected values.");
-  }
-
-  state.imageUri = imageUri;
-  state.metadataUri = metadataUri;
-  state.status = "metadata-uploaded";
-  saveState(state);
-
-  fs.mkdirSync(path.dirname(RESOLVED_METADATA_PATH), { recursive: true });
-  fs.writeFileSync(
-    RESOLVED_METADATA_PATH,
-    `${JSON.stringify(metadata, null, 2)}\n`
-  );
-
-  console.log("\nUpload verified. Recorded in deployments/mainnet.json.");
-  console.log(`Logo URI       ${imageUri}`);
-  console.log(`Metadata URI   ${metadataUri}`);
-  console.log("Next: node register-metadata-mainnet.js");
+    console.log("\nUpload verified. Recorded in deployments/mainnet.json.");
+    console.log(`Logo URI       ${imageUri}`);
+    console.log(`Metadata URI   ${metadataUri}`);
+    console.log("Next: node register-metadata-mainnet.js");
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -237,6 +322,10 @@ function selfTest() {
     assert.strictEqual(metadata.description, config.TOKEN.description);
   });
 
+  check("metadata.json template matches the confirmed token details", () => {
+    loadMetadataTemplate();
+  });
+
   check("metadata starts without any URI from an earlier network", () => {
     const metadata = buildMetadata();
     assert.strictEqual(metadata.image, "");
@@ -253,6 +342,25 @@ function selfTest() {
     const endpoint = new URL(config.IRYS_ADDRESS);
     assert.strictEqual(endpoint.protocol, "https:");
     assert.ok(endpoint.hostname.endsWith("irys.xyz"));
+  });
+
+  check("the deployment record has no mint yet, so upload must refuse", () => {
+    const state = loadState();
+    assert.strictEqual(state.mintAddress, null);
+    assert.strictEqual(state.metadataUri, null);
+  });
+
+  check("the holder token account is derived deterministically per mint and holder", () => {
+    const mint = new PublicKey(config.WALLETS.mintAuthority);
+    const holder = new PublicKey(config.WALLETS.initialHolder);
+    const otherHolder = new PublicKey(config.WALLETS.feePayer);
+
+    const first = getAssociatedTokenAddressSync(mint, holder, false, TOKEN_PROGRAM_ID);
+    const second = getAssociatedTokenAddressSync(mint, holder, false, TOKEN_PROGRAM_ID);
+    const other = getAssociatedTokenAddressSync(mint, otherHolder, false, TOKEN_PROGRAM_ID);
+
+    assert.ok(first.equals(second));
+    assert.ok(!first.equals(other));
   });
 
   for (const result of results) {

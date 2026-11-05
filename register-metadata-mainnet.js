@@ -7,6 +7,13 @@
 // mint recorded in deployments/mainnet.json. The mint and freeze authorities stay
 // with the confirmed HxDW wallet; nothing is revoked.
 //
+// Every validation fails closed: a mint that does not match the confirmed
+// configuration, an unreachable metadata URI, or metadata that is already
+// registered stops the run before anything is signed.
+//
+// The deployment record is only marked ready after the metadata has been read
+// back from Mainnet and matches this configuration.
+//
 // Dry run by default. `--execute` (plus the confirmation phrase) sends one
 // transaction, signed by the fee payer and the mint authority.
 
@@ -14,7 +21,6 @@ const fs = require("fs");
 const assert = require("assert");
 
 const { PublicKey, Keypair } = require("@solana/web3.js");
-const { TOKEN_PROGRAM_ID, getMint } = require("@solana/spl-token");
 
 const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
 const {
@@ -27,17 +33,21 @@ const {
   mplTokenMetadata,
   createV1,
   findMetadataPda,
+  fetchMetadataFromSeeds,
   TokenStandard
 } = require("@metaplex-foundation/mpl-token-metadata");
 const { base58 } = require("@metaplex-foundation/umi/serializers");
 
 const config = require("./config/mainnet");
 const { loadState, saveState } = require("./lib/state");
+const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
   assertAddress,
   describeKeypairFile
 } = require("./lib/wallets");
+const { assertMainnetRpc } = require("./lib/rpc");
+const { assertMintOnChain, assertHolderTokenAccount } = require("./lib/verify");
 const { heading, confirmExecution } = require("./lib/cli");
 
 function loadMetadataTemplate() {
@@ -72,6 +82,7 @@ function loadRegistrationKeypairs() {
 
   const authority = readKeypair(config.KEYPAIRS.authority, "mint authority");
   assertAddress(authority, config.WALLETS.mintAuthority, "mint authority");
+  assertAddress(authority, config.WALLETS.freezeAuthority, "freeze authority");
 
   return { feePayer, authority };
 }
@@ -83,7 +94,13 @@ function umiSigner(umi, keypair) {
   );
 }
 
-function buildMetadataTransaction({ umi, feePayerSigner, authoritySigner, mintAddress, metadataUri }) {
+function buildMetadataTransaction({
+  umi,
+  feePayerSigner,
+  authoritySigner,
+  mintAddress,
+  metadataUri
+}) {
   return createV1(umi, {
     mint: publicKey(mintAddress),
     authority: authoritySigner,
@@ -98,49 +115,14 @@ function buildMetadataTransaction({ umi, feePayerSigner, authoritySigner, mintAd
   });
 }
 
-async function assertMintReady(connection, mintAddress) {
-  const mint = new PublicKey(mintAddress);
-  const account = await connection.getAccountInfo(mint, "confirmed");
-
-  if (!account) {
-    throw new Error(
-      `Mint ${mintAddress} does not exist on Mainnet yet. Create it first with deploy-mainnet.js.`
-    );
+function assertMetadataUriShape(metadataUri) {
+  if (typeof metadataUri !== "string" || !metadataUri.startsWith("https://")) {
+    throw new Error(`Metadata URI must be https, got "${metadataUri}".`);
   }
-
-  if (!account.owner.equals(TOKEN_PROGRAM_ID)) {
-    throw new Error(`${mintAddress} is not a Classic SPL Token mint.`);
-  }
-
-  const mintInfo = await getMint(connection, mint, "confirmed", TOKEN_PROGRAM_ID);
-  const mintAuthority = mintInfo.mintAuthority?.toBase58() || null;
-  const freezeAuthority = mintInfo.freezeAuthority?.toBase58() || null;
-
-  if (mintInfo.decimals !== config.TOKEN.decimals) {
-    throw new Error(
-      `Mint has ${mintInfo.decimals} decimals, expected ${config.TOKEN.decimals}.`
-    );
-  }
-
-  if (mintAuthority !== config.WALLETS.mintAuthority) {
-    throw new Error(
-      `Mint authority is ${mintAuthority}, expected ${config.WALLETS.mintAuthority}.`
-    );
-  }
-
-  if (freezeAuthority !== config.WALLETS.freezeAuthority) {
-    throw new Error(
-      `Freeze authority is ${freezeAuthority}, expected ${config.WALLETS.freezeAuthority}.`
-    );
-  }
-
-  return mintInfo;
 }
 
 async function assertMetadataUri(metadataUri) {
-  if (!metadataUri.startsWith("https://")) {
-    throw new Error(`Metadata URI must be https, got "${metadataUri}".`);
-  }
+  assertMetadataUriShape(metadataUri);
 
   const response = await fetch(metadataUri);
 
@@ -153,14 +135,57 @@ async function assertMetadataUri(metadataUri) {
   if (
     metadata.name !== config.TOKEN.name ||
     metadata.symbol !== config.TOKEN.symbol ||
+    metadata.description !== config.TOKEN.description ||
     !metadata.image
   ) {
     throw new Error(
-      "Uploaded metadata does not carry the confirmed USOL name, symbol and image."
+      "Uploaded metadata does not carry the confirmed USOL name, symbol, description and image."
     );
   }
 
   return metadata;
+}
+
+function trimMetadataString(value) {
+  return String(value ?? "").replace(/\0+$/, "");
+}
+
+async function assertMetadataRegistered(umi, mintAddress, metadataUri) {
+  const onChain = await fetchMetadataFromSeeds(umi, {
+    mint: publicKey(mintAddress)
+  });
+
+  if (trimMetadataString(onChain.name) !== config.TOKEN.name) {
+    throw new Error(
+      `On-chain metadata name is "${trimMetadataString(onChain.name)}", expected "${config.TOKEN.name}".`
+    );
+  }
+
+  if (trimMetadataString(onChain.symbol) !== config.TOKEN.symbol) {
+    throw new Error(
+      `On-chain metadata symbol is "${trimMetadataString(onChain.symbol)}", expected "${config.TOKEN.symbol}".`
+    );
+  }
+
+  if (onChain.uri !== metadataUri) {
+    throw new Error(
+      `On-chain metadata URI is "${onChain.uri}", expected the recorded "${metadataUri}".`
+    );
+  }
+
+  if (trimMetadataString(onChain.updateAuthority) !== config.WALLETS.mintAuthority) {
+    throw new Error(
+      `On-chain metadata update authority is ${onChain.updateAuthority}, expected ${config.WALLETS.mintAuthority}.`
+    );
+  }
+
+  if (trimMetadataString(onChain.mint) !== mintAddress) {
+    throw new Error(
+      `On-chain metadata belongs to mint ${onChain.mint}, expected ${mintAddress}.`
+    );
+  }
+
+  return onChain;
 }
 
 async function main() {
@@ -172,6 +197,9 @@ async function main() {
   const state = loadState();
 
   heading("UnitedSOLANA (USOL) — Mainnet metadata registration");
+
+  config.assertValidWallets();
+
   console.log(`Network            Solana Mainnet (${config.NETWORK})`);
   console.log(`RPC                ${rpcUrl}`);
   console.log(`Name               ${config.TOKEN.name}`);
@@ -188,6 +216,12 @@ async function main() {
   if (!state.metadataUri) {
     throw new Error(
       "No Mainnet metadata URI is recorded. Run upload-metadata-mainnet.js first."
+    );
+  }
+
+  if (state.metadataAccount) {
+    throw new Error(
+      `Metadata is already recorded at ${state.metadataAccount} for this mint. Refusing to register it twice.`
     );
   }
 
@@ -215,13 +249,20 @@ async function main() {
 
   const connection = config.createConnection(rpcUrl);
 
-  try {
-    await assertMintReady(connection, state.mintAddress);
-    const metadata = await assertMetadataUri(state.metadataUri);
-    console.log(`\nMetadata verified: ${metadata.name} (${metadata.symbol}), image present.`);
-  } catch (error) {
-    console.log(`\nPreflight warning: ${error.message}`);
+  // Fail closed: every check below must pass before anything is signed.
+  console.log("\nVerifying the mint and metadata on Mainnet…");
+  await assertMintOnChain(connection, state.mintAddress);
+
+  if (state.associatedTokenAccount) {
+    await assertHolderTokenAccount(connection, {
+      mintAddress: state.mintAddress,
+      tokenAccountAddress: state.associatedTokenAccount,
+      expectedAmount: config.rawInitialSupply()
+    });
   }
+
+  await assertMetadataUri(state.metadataUri);
+  console.log("  Mint, supply and metadata URI verified.");
 
   const umi = createUmi(rpcUrl);
   umi.use(mplTokenMetadata());
@@ -256,50 +297,85 @@ async function main() {
     throw new Error(`${keypairError.message} Nothing was submitted.`);
   }
 
-  const feePayerSigner = umiSigner(umi, keypairs.feePayer);
-  const authoritySigner = umiSigner(umi, keypairs.authority);
+  await withDeploymentLock("metadata-registration", async () => {
+    const current = loadState();
 
-  umi.use(keypairIdentity(feePayerSigner));
+    if (current.metadataAccount) {
+      throw new Error(
+        `Metadata is already recorded at ${current.metadataAccount}. Nothing was submitted.`
+      );
+    }
 
-  console.log("\nSubmitting metadata registration…");
+    await assertMainnetRpc(connection);
+    await assertMintOnChain(connection, current.mintAddress);
+    await assertMetadataUri(current.metadataUri);
 
-  const result = await buildMetadataTransaction({
-    umi,
-    feePayerSigner,
-    authoritySigner,
-    mintAddress: state.mintAddress,
-    metadataUri: state.metadataUri
-  }).sendAndConfirm(umi);
+    const feePayerSigner = umiSigner(umi, keypairs.feePayer);
+    const authoritySigner = umiSigner(umi, keypairs.authority);
 
-  const signature = base58.deserialize(result.signature)[0];
+    umi.use(keypairIdentity(feePayerSigner));
 
-  state.metadataAccount = metadataPda;
-  state.status = "ready-for-liquidity-and-distribution";
-  state.transactions.metadataRegistration = signature;
-  saveState(state);
+    console.log("\nSubmitting metadata registration…");
 
-  const confirmed = await connection.getAccountInfo(
-    new PublicKey(metadataPda),
-    "confirmed"
-  );
+    const result = await buildMetadataTransaction({
+      umi,
+      feePayerSigner,
+      authoritySigner,
+      mintAddress: current.mintAddress,
+      metadataUri: current.metadataUri
+    }).sendAndConfirm(umi);
 
-  if (!confirmed) {
-    throw new Error(
-      `The registration transaction ${signature} was sent but the metadata account is not visible yet. Check the explorer before retrying.`
+    const signature = base58.deserialize(result.signature)[0];
+
+    current.metadataAccount = metadataPda;
+    current.transactions.metadataRegistration = signature;
+    current.status = "metadata-registration-needs-review";
+    saveState(current);
+
+    // Only a read-back that matches the configuration marks the deployment
+    // ready. A mismatch keeps the "needs review" status and stops the run.
+    try {
+      await assertMetadataRegistered(
+        umi,
+        current.mintAddress,
+        current.metadataUri
+      );
+      await assertMintOnChain(connection, current.mintAddress);
+
+      if (current.associatedTokenAccount) {
+        await assertHolderTokenAccount(connection, {
+          mintAddress: current.mintAddress,
+          tokenAccountAddress: current.associatedTokenAccount,
+          expectedAmount: config.rawInitialSupply()
+        });
+      }
+    } catch (error) {
+      throw new Error(
+        `The registration transaction ${signature} was sent but on-chain verification failed: ${error.message}\nMint: ${current.mintAddress}\nMetadata account: ${metadataPda}`
+      );
+    }
+
+    current.status = "mint-and-metadata-verified";
+    saveState(current);
+
+    console.log("\nMetadata registered and verified on Mainnet.");
+    console.log(`Mint               ${current.mintAddress}`);
+    console.log(`Metadata account   ${metadataPda}`);
+    console.log(`Transaction        ${signature}`);
+    console.log(config.explorerTransactionUrl(signature));
+    console.log(`\nMint authority     ${config.WALLETS.mintAuthority} (active)`);
+    console.log(`Freeze authority   ${config.WALLETS.freezeAuthority} (active)`);
+    console.log(
+      `\nSupply of ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL remains in ${config.WALLETS.initialHolder}.`
     );
-  }
-
-  console.log("\nMetadata registered and verified on Mainnet.");
-  console.log(`Mint               ${state.mintAddress}`);
-  console.log(`Metadata account   ${metadataPda}`);
-  console.log(`Transaction        ${signature}`);
-  console.log(config.explorerTransactionUrl(signature));
-  console.log("\nMint and freeze authorities remain active.");
+    console.log("Nothing has been distributed or pooled.");
+  });
 }
 
 // ---------------------------------------------------------------------------
-// Offline self-test: validates the metadata template and the instruction
-// wiring (program, accounts, signers) without any network request.
+// Offline self-test: validates the metadata template, the fail-closed URI
+// check and the instruction wiring (program, accounts, signers) without any
+// network request.
 // ---------------------------------------------------------------------------
 
 function selfTest() {
@@ -319,13 +395,26 @@ function selfTest() {
     loadMetadataTemplate();
   });
 
-  const mintAddress = Keypair.generate().publicKey.toBase58();
+  check("metadata URIs that are not https are rejected", () => {
+    assert.throws(
+      () => assertMetadataUriShape("http://example.com/usol.json"),
+      /must be https/
+    );
+    assert.throws(() => assertMetadataUriShape(""), /must be https/);
+    assert.doesNotThrow(() =>
+      assertMetadataUriShape("https://example.com/usol.json")
+    );
+  });
 
-  check("no mint address is recorded before the token is created", () => {
+  check("no mint, metadata URI or metadata account is recorded before launch", () => {
     const state = loadState();
-    assert.strictEqual(state.mintAddress, null, "mintAddress must stay null until creation");
+    assert.strictEqual(state.mintAddress, null);
+    assert.strictEqual(state.metadataUri, null);
+    assert.strictEqual(state.metadataAccount, null);
     assert.strictEqual(state.transactions.metadataRegistration, null);
   });
+
+  const mintAddress = Keypair.generate().publicKey.toBase58();
 
   const umi = createUmi(config.MAINNET_RPC_URL);
   umi.use(mplTokenMetadata());

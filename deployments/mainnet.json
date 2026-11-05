@@ -1,6 +1,7 @@
 {
   "network": "mainnet-beta",
   "rpcUrl": "https://api.mainnet-beta.solana.com",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
   "token": {
     "name": "UnitedSOLANA",
     "symbol": "USOL",
@@ -14,6 +15,33 @@
     "mintAuthority": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
     "freezeAuthority": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
   },
+  "plannedAllocation": [
+    {
+      "key": "liquidityReserve",
+      "label": "Initial liquidity reserve (future USOL/SOL and USOL/USDC pools)",
+      "amount": "300000000"
+    },
+    {
+      "key": "treasury",
+      "label": "Treasury and reserves",
+      "amount": "250000000"
+    },
+    {
+      "key": "ecosystem",
+      "label": "Ecosystem and community",
+      "amount": "200000000"
+    },
+    {
+      "key": "distribution",
+      "label": "Future distribution",
+      "amount": "150000000"
+    },
+    {
+      "key": "retained",
+      "label": "Retained allocation",
+      "amount": "100000000"
+    }
+  ],
   "status": "not-created",
   "mintAddress": null,
   "associatedTokenAccount": null,
@@ -24,5 +52,6 @@
     "mintCreation": null,
     "metadataRegistration": null
   },
+  "recovery": null,
   "updatedAt": null
 }
