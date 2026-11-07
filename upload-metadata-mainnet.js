@@ -52,6 +52,14 @@ const RESOLVED_METADATA_PATH = path.join(
   "metadata.mainnet.json"
 );
 
+// Offline tests read isolated fixtures, never the live deployment record.
+const DEPLOYED_FIXTURE = path.join(
+  __dirname,
+  "test",
+  "fixtures",
+  "mainnet.deployed.json"
+);
+
 // Metadata is rebuilt from the confirmed config so no test-network URI from an
 // earlier upload can be carried over.
 function buildMetadata() {
@@ -164,13 +172,7 @@ async function main() {
   console.log(`Name               ${config.TOKEN.name}`);
   console.log(`Symbol             ${config.TOKEN.symbol}`);
   console.log(`Description        ${config.TOKEN.description}`);
-  console.log(`Mint               ${state.mintAddress || "not created yet"}`);
-
-  if (!state.mintAddress) {
-    throw new Error(
-      "No verified Mainnet mint is recorded in deployments/mainnet.json. Uploading metadata before the mint exists is refused; create and verify the mint first (node deploy-mainnet.js --execute)."
-    );
-  }
+  console.log(`Mint               ${state.mintAddress}`);
 
   if (state.metadataUri) {
     throw new Error(
@@ -350,14 +352,14 @@ function selfTest() {
     assert.ok(endpoint.hostname.endsWith("irys.xyz"));
   });
 
-  check("the deployment record has no mint yet, so upload must refuse", () => {
-    const state = loadState();
-    assert.strictEqual(state.mintAddress, null);
-    assert.strictEqual(state.metadataUri, null);
+  check("the deployed record already holds a metadata URI, so upload must refuse", () => {
+    const state = loadState(DEPLOYED_FIXTURE);
+    assert.strictEqual(state.mintAddress, config.DEPLOYMENT.mintAddress);
+    assert.strictEqual(state.metadataUri, config.DEPLOYMENT.metadataUri);
   });
 
   check("a deployment record with changed wallets would be refused before uploading", () => {
-    const state = loadState();
+    const state = loadState(DEPLOYED_FIXTURE);
     assert.strictEqual(assertStateWallets(state), state);
 
     assert.throws(
@@ -374,7 +376,7 @@ function selfTest() {
   });
 
   check("the holder token account is derived deterministically per mint and holder", () => {
-    const mint = new PublicKey(config.WALLETS.mintAuthority);
+    const mint = new PublicKey(config.DEPLOYMENT.mintAddress);
     const holder = new PublicKey(config.WALLETS.initialHolder);
     const otherHolder = new PublicKey(config.WALLETS.feePayer);
 

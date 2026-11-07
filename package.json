@@ -15,7 +15,8 @@
     "deploy": "node deploy-mainnet.js",
     "upload:metadata": "node upload-metadata-mainnet.js",
     "register:metadata": "node register-metadata-mainnet.js",
-    "test:mainnet": "node deploy-mainnet.js --self-test && node upload-metadata-mainnet.js --self-test && node register-metadata-mainnet.js --self-test",
+    "test:mainnet": "node deploy-mainnet.js --self-test && node upload-metadata-mainnet.js --self-test && node register-metadata-mainnet.js --self-test && node test/mainnet-deployed.test.js",
+    "test:deployment": "node test/mainnet-deployed.test.js",
     "start": "node web/server.js"
   }
 }

@@ -1,31 +1,53 @@
 # UnitedSOLANA (USOL)
 
-UnitedSOLANA (USOL) is a Classic SPL Token project built on the Solana
-blockchain.
+UnitedSOLANA (USOL) is a Classic SPL Token on the Solana blockchain.
 
 ## Project Status
 
-**Network: Solana Mainnet — configuration, safety checks and deployment scripts
-prepared.**
+**USOL is already deployed on Solana Mainnet.** It is not an undeployed or
+“awaiting launch” token, and there is no second mint to create.
 
-The USOL Mainnet mint has **not** been created. There is no Mainnet mint address
-or transaction signature yet: `deployments/mainnet.json` keeps `mintAddress` as
-`null` until a successful creation records the real value.
+-   The Mainnet mint exists at
+    `FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG`.
+-   Its total supply of **1,000,000,000 USOL** was created with the mint and is
+    established on-chain.
+-   The Metaplex metadata is registered at
+    `4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc`.
+-   The **mint authority is permanently revoked** (on-chain value `null`). No
+    wallet can mint additional USOL.
+-   The **freeze authority is permanently revoked** (on-chain value `null`). No
+    wallet can freeze or unfreeze a USOL token account.
 
-Test-network configuration and scripts have been removed. Solana Mainnet is the
-only network the active project supports.
+The revocations are permanent and irreversible. Nothing in this repository can
+restore either authority, and no script here creates, deploys or revokes
+anything.
+
+Two activities are deliberately separate from token creation:
+
+-   **Liquidity** — no USOL pool exists or is created by this repository.
+-   **Distribution** — no allocation has been transferred. The split described
+    below is a **planned allocation**, not proof of completed transfers.
+
+The application in `web/` is a **wallet-connect page only**. It shows the public
+address of a connected Phantom wallet. It is not a trading application, does not
+hold or display balances, and does not sign, swap or transfer anything.
 
 ## Token Details
 
-  Property         Value
-  ---------------- -----------------------------------------------
-  Name             UnitedSOLANA
-  Symbol           USOL
-  Network          Solana Mainnet
-  Token Standard   Classic SPL Token
-  Decimals         9
-  Initial Supply   1,000,000,000 USOL
-  Mint Address     Not created yet
+  Property           Value
+  ------------------ ----------------------------------------------------------
+  Name               UnitedSOLANA
+  Symbol             USOL
+  Network            Solana Mainnet (`mainnet-beta`)
+  Token standard     Classic SPL Token
+  Decimals           9
+  Total supply       1,000,000,000 USOL
+  Mint address       `FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG`
+  Metadata account   `4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc`
+  Metadata URI       `https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY`
+  Logo URI           `https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo`
+  Mint authority     REVOKED (permanent)
+  Freeze authority   REVOKED (permanent)
 
 Description:
 
@@ -33,26 +55,38 @@ Description:
 > Solana blockchain. Designed to facilitate seamless decentralized trading,
 > liquidity pairing, and ecosystem transaction fees across Solana dApps
 
+### Deployment transactions
+
+  Step                        Signature
+  --------------------------- -------------------------------------------------
+  Mint creation               `3N1UJdVAC8AGiCe9mJetrZHzBNW3aZTnAgfqtjoDMQey91jphBri5SGXsFBzt1cdnQAUtaA54Sv9k211EiJoHdUY`
+  Metadata registration       `2LKc5pLimSyiAQhCsUYpYNvjySjJZ8asmHo8qtopf3J6wvgqF2Abx1oYVBLK2gUT3niS4CKyvDoXJShuoJuEuD8C`
+  Mint authority revocation   `3N5WpNkkJQ3uSEtGBBxU7z5mkcesJnZaVyShb1mMhRPYWsVNXdYYYE8YbZieSZkreMfkReFuRY4aQqMvYz26dCAe`
+  Freeze authority revocation `3ZjBcDEMmoYBSwD8y2GyJVkgxkGyWJQpc4aEowXmrn7bQ3upzeHyxpB2hQhNEADBiDotCmngFDMqUxkXp8kR2JJ8`
+
 ## Confirmed Wallet Assignments
 
   Role               Address
-  ------------------ ----------------------------------------------
+  ------------------ ----------------------------------------------------------
   Fee payer          `FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU`
-  Initial holder     `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
-  Mint authority     `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
-  Freeze authority   `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
+  Original holder    `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
 
-The fee payer and the token holder are separate wallets and are handled
-separately: FRPP pays transaction fees, account rent and upload costs, while
-HxDW receives the initial supply and keeps the mint and freeze authorities. Both
-authorities stay active — nothing is revoked.
+The fee payer and the holder are separate wallets: FRPP paid transaction fees,
+account rent and upload costs, while HxDW received the initial supply and is the
+original holder.
+
+Neither wallet is an active mint or freeze authority. The Metaplex metadata has
+its own update authority, which is separate from the token authorities and can
+change metadata only — it cannot mint or freeze USOL. HxDW signed the metadata
+registration. Both authority revocations are permanent.
 
 ## Planned Allocation
 
-The entire 1,000,000,000 USOL supply is minted into the HxDW wallet in one
-transaction. This plan is recorded in `config/mainnet.js` and
-`deployments/mainnet.json`; **no transfer, pool or distribution is performed by
-these scripts**.
+The entire 1,000,000,000 USOL supply was minted into the HxDW token account. The
+split below is a plan recorded in `config/mainnet.js` and
+`deployments/mainnet.json`; **it is not proof that any transfer, pool or
+distribution has happened**. No USOL has been transferred, pooled or distributed
+by this repository.
 
   Amount          Purpose
   --------------- ------------------------------------------------------------
@@ -62,7 +96,10 @@ these scripts**.
   150,000,000     Future distribution
   100,000,000     Retained allocation
   --------------- ------------------------------------------------------------
-  1,000,000,000   Total, all held by `HxDW…urT` after launch
+  1,000,000,000   Total, minted to the original holder at creation
+
+Liquidity and distribution are separate activities from token creation and are
+not performed by any script here.
 
 ## Mainnet Configuration
 
@@ -70,61 +107,81 @@ All values live in one place, `config/mainnet.js`:
 
 -   RPC endpoint: `https://api.mainnet-beta.solana.com`
 -   Mainnet genesis hash: `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d`
--   Token name, symbol, standard, decimals and initial supply.
--   The four confirmed wallet assignments and the planned allocation.
--   The confirmation phrase required before any transaction is sent.
+-   Token name, symbol, standard, decimals and total supply.
+-   The deployed mint, metadata account, metadata URI, logo URI and deployment
+    transactions (`DEPLOYMENT`).
+-   The revoked authorities and their revocation transactions (`AUTHORITIES`),
+    both recorded as `null`.
+-   The two confirmed wallet assignments and the planned allocation.
+-   The confirmation phrase required before any transaction could be sent.
 
 Wallet addresses are validated strictly: base58, exactly 32 bytes, canonical
 re-encoding and on the ed25519 curve — and, beyond validity, they are compared
-exactly with the four confirmed assignments before every run. A malformed or
+exactly with the confirmed assignments before every run. A malformed or
 substituted address stops every script. `USOL_RPC_URL` may only be the official
 HTTPS Mainnet origin or a local validator for a non-submitting dry run; a local
 endpoint is refused when `--execute` is used, any other network is rejected at
-startup, and every execution additionally checks the cluster's genesis hash.
+startup, and every network run additionally checks the cluster's genesis hash.
 
 ## Project Scripts
 
   -----------------------------------------------------------------------------
   File                            Purpose
   ------------------------------- ---------------------------------------------
-  `deploy-mainnet.js`             Creates the mint, the initial holder's token
-                                  account and the 1B USOL supply in one atomic
-                                  transaction
+  `deploy-mainnet.js`             Verifies the existing Mainnet deployment:
+                                  mint, decimals, supply, revoked authorities,
+                                  metadata account and URI, holder token account.
+                                  Verification only — there is no path that
+                                  creates a mint or signs a transaction.
 
-  `upload-metadata-mainnet.js`    Uploads the existing logo and the USOL
-                                  metadata to Irys on Mainnet (requires a
-                                  verified mint)
+  `upload-metadata-mainnet.js`    Historical. Refuses because a metadata URI is
+                                  already recorded.
 
-  `register-metadata-mainnet.js`  Registers the Metaplex metadata and verifies it
-                                  on-chain
+  `register-metadata-mainnet.js`  Historical. Refuses because the metadata
+                                  account is already recorded.
 
-  `config/mainnet.js`             Network, genesis hash, token, wallet and
-                                  allocation settings
+  `revoke-mint-authority.js`      Historical. Stops as soon as it sees the mint
+                                  authority is already `null`.
+
+  `revoke-freeze-authority.js`    Historical. Stops as soon as it sees the freeze
+                                  authority is already `null`.
+
+  `config/mainnet.js`             Network, genesis hash, token, deployment,
+                                  authorities, wallet and allocation settings
 
   `lib/rpc.js`                    Mainnet genesis check and message-based fee
                                   calculation
 
-  `lib/preflight.js`              Fail-closed execution gate: endpoint, wallet
-                                  pin, supply, transaction, fee and balance
+  `lib/preflight.js`              Fail-closed gate: endpoint, wallet pin, supply,
+                                  record integrity, transaction and funding
 
-  `lib/verify.js`                 On-chain mint, authority, supply and token
-                                  account verification
+  `lib/verify.js`                 Mint (9 decimals, 1B supply, null authorities),
+                                  metadata account/URI and token account checks
 
-  `lib/launch-transaction.js`     The atomic launch transaction builder
+  `lib/state.js`                  Deployment record read/write and integrity
+                                  checks
 
-  `lib/lock.js`                   One-run-at-a-time lock around each script
+  `lib/launch-transaction.js`     Historical launch transaction builder, used
+                                  only by the offline audit checks
 
-  `lib/state.js`                  Deployment record read/write
-
-  `deployments/mainnet.json`      Record of the actual mint address, token
-                                  account, metadata account and signatures
+  `deployments/mainnet.json`      Record of the deployed mint, token account,
+                                  metadata account, authorities and signatures
   -----------------------------------------------------------------------------
 
-Every script is a **dry run by default**. It validates the configuration, reads
-what it can without changing anything and prints the plan and cost. Adding
-`--execute` — and typing the exact confirmation phrase — is required before
-anything is signed or submitted. `--self-test` runs offline checks that make no
-network request and spend nothing.
+`deploy-mainnet.js` is a read-only verification run: it makes no signing step
+available, so it cannot spend SOL or change the token. The metadata and
+revocation scripts keep their historical `--execute` code but refuse before
+reaching it because the deployment is complete.
+
+## Verification
+
+``` bash
+npm run test:mainnet      # all offline checks, no network and no transaction
+npm run test:deployment   # deployed-state checks only
+```
+
+`deploy-mainnet.js` can also verify the live deployment against Mainnet when
+run without arguments. It reads the chain and reports; it never signs.
 
 ## Safety Behaviour
 
@@ -132,68 +189,51 @@ network request and spend nothing.
     `https://api.mainnet-beta.solana.com` — HTTPS, the official origin, no
     alternative port, path or look-alike host. A local validator
     (`localhost` / `127.0.0.1`) is accepted for non-submitting dry runs only and
-    is refused outright as soon as `--execute` is requested. Every execution
-    re-checks the genesis hash before building or sending a transaction.
--   **Fees are calculated, not assumed.** The fee comes from
-    `getFeeForMessage` on the exact transaction message that will be sent. If the
-    RPC cannot price it, the scripts refuse to continue.
--   **Exact wallet pinning.** The four confirmed assignments are a frozen literal
-    in `config/mainnet.js` and are compared byte for byte with the active
-    configuration and with `deployments/mainnet.json` before any signing step. A
-    valid but different Solana address is still refused.
+    is refused outright as soon as `--execute` is requested. Every network run
+    re-checks the genesis hash first.
+-   **Authorities must be revoked.** Verification fails if the mint or freeze
+    authority is not `null`. An active authority is never accepted as normal.
+-   **Deployment record integrity.** The recorded mint, metadata account and
+    metadata URI must match the deployed USOL values. A blank or tampered record
+    is refused — it is never treated as a reason to create a new token.
+-   **No second mint.** The deployment record already holds the mint, and the
+    deployed address is pinned in `config/mainnet.js`. Scripts that would create
+    a mint are gone; the historical launch builder is only exercised by offline
+    tests.
+-   **Fees are calculated, not assumed.** Where a fee is shown, it comes from
+    `getFeeForMessage` on the exact transaction message. If the RPC cannot price
+    it, the scripts refuse to continue.
+-   **Exact wallet pinning.** The confirmed assignments are a frozen literal in
+    `config/mainnet.js` and are compared byte for byte with the active
+    configuration and with `deployments/mainnet.json` before any network step.
 -   **Strict wallet validation.** Every configured wallet must also be a
-    canonical, on-curve ed25519 address; the fee payer cannot also be a token
-    authority.
--   **Authorities are passed separately.** The mint and freeze authorities are
-    independent arguments and are written independently (both are HxDW by
-    assignment).
--   **Fail closed.** Metadata registration stops on any mismatch: wrong decimals,
-    wrong authorities, wrong supply, unreachable or malformed metadata URI,
-    existing metadata. Only a successful read-back of the on-chain metadata marks
-    the deployment ready.
--   **Verified mint before upload.** Metadata cannot be uploaded until the
-    recorded mint, both authorities, the full supply and the holder's token
-    account all verify on-chain.
--   **Everything is checked before anything is signed.** Endpoint, wallets,
-    supply, the compiled transaction, fee and balance are all verified in that
-    order; a failure aborts the run without spending SOL.
--   **No duplicate or interrupted launches.** A lock file stops concurrent runs.
-    A recorded mint is verified rather than re-created, and a mint keypair whose
-    account already exists on-chain is recovered and verified instead of starting
-    a second mint.
--   **Token account verification.** After launch the associated token account is
+    canonical, on-curve ed25519 address; the fee payer and holder must differ.
+-   **Fail closed.** Metadata registration stops on any mismatch. Only a
+    successful read-back of the on-chain metadata marks the deployment ready.
+-   **No duplicate uploads or registrations.** A recorded metadata URI or
+    metadata account stops the upload/registration scripts instead of
+    overwriting it.
+-   **Token account verification.** The holder's associated token account is
     checked for the right mint, the right owner (HxDW) and the full
     1,000,000,000 USOL balance.
 
-## Deployment Order
+## Deployment Record
 
-Run from the repository root after `npm install`:
+`deployments/mainnet.json` is the single place the real Mainnet values are
+recorded:
 
-``` bash
-# 0. Offline checks (no network, no SOL)
-npm run test:mainnet
-
-# 1. Validate configuration, Mainnet genesis and cost (no transaction)
-node deploy-mainnet.js
-
-# 2. Fund FRPP with enough Mainnet SOL, then create the mint
-node deploy-mainnet.js --execute
-
-# 3. Upload the logo and metadata (requires the verified mint)
-node upload-metadata-mainnet.js --execute
-
-# 4. Register the Metaplex metadata and verify it on-chain
-node register-metadata-mainnet.js --execute
-```
-
-Each `--execute` run asks for the confirmation phrase
-(`LAUNCH USOL ON MAINNET`) and refuses to continue without it. After step 2 the
-real mint address is written to `deployments/mainnet.json`; steps 3 and 4 read it
-from there and refuse to run while it is `null`, so no placeholder or invented
-mint address can be used.
-
-There is deliberately no transfer script: USOL transfers and liquidity pools are
-not part of the launch and will be added only when distribution is approved.
+-   `status` — `mainnet-deployed-and-verified` for the existing deployment.
+    Earlier statuses (`mint-created`, `mint-verified`, `metadata-uploaded`,
+    `metadata-registration-needs-review`) remain meaningful only as history.
+-   `mintAddress` — the deployed USOL mint.
+-   `associatedTokenAccount` — the original holder's token account.
+-   `metadataAccount`, `metadataUri`, `imageUri` — registered metadata.
+-   `authorities.mintAuthority` / `authorities.freezeAuthority` — both `null`,
+    with the revocation transactions.
+-   `transactions` — mint creation, metadata registration and both authority
+    revocations.
+-   `plannedAllocation` — the recorded distribution plan, not an executed
+    transfer.
 
 ## Keypairs
 
@@ -212,53 +252,22 @@ export USOL_FEE_PAYER_KEYPAIR=/secure/path/fee-payer.json
 export USOL_AUTHORITY_KEYPAIR=/secure/path/authority.json
 ```
 
-Each script verifies that the loaded keypair resolves to the confirmed address
-and refuses to continue otherwise.
+Each script verifies that a loaded keypair resolves to the confirmed address and
+refuses to continue otherwise.
 
-The new mint account needs its own keypair to sign account creation. The launch
-script generates it at execution time and writes it to
-`~/.config/unitedsolana/mainnet/mint-keypair.json` (mode 600) before sending the
-transaction, so an interrupted attempt can be recovered instead of losing the
-address. That file never enters the repository.
+The deployment is complete, so no keypair is needed to verify it. Never commit
+wallet secret keys, private keys, seed phrases or credentials. `.gitignore`
+already excludes `*keypair*.json`, `fee-payer.json`, `authority.json`, `*.key`,
+`*.pem` and `.env` files. The website never asks for a seed phrase or private
+key.
 
-Never commit wallet secret keys, private keys, seed phrases or credentials.
-`.gitignore` already excludes `*keypair*.json`, `fee-payer.json`,
-`authority.json`, `*.key`, `*.pem` and `.env` files. The website never asks for a
-seed phrase or private key.
-
-## Deployment Record
-
-`deployments/mainnet.json` is the single place the real Mainnet values are
-recorded:
-
--   `mintAddress` — the actual mint, filled in only after creation is confirmed.
--   `associatedTokenAccount` — the holder's token account.
--   `imageUri`, `metadataUri` — uploaded logo and metadata.
--   `metadataAccount`, `transactions.mintCreation`, `transactions.metadataRegistration` — Metaplex account and signatures.
--   `plannedAllocation` — the recorded distribution plan, not an executed transfer.
--   `status` — `not-created` → `mint-created` → `mint-verified` →
-    `metadata-uploaded` → `metadata-registration-needs-review` →
-    `mint-and-metadata-verified`. A `mint-created-needs-review` status means the
-    mint exists but failed verification.
-
-## Tests
-
-``` bash
-npm run test:mainnet
-```
-
-Runs the offline self-tests for all three scripts: configuration and allocation,
-strict wallet validation, genesis-hash enforcement, message-based fee
-calculation, launch instruction layout and authorities, signature set, and
-metadata instruction wiring. They make no network request and spend nothing.
-
-## Wallet Interface (Phase 1)
+## Wallet Interface
 
 A minimal page for connecting a Phantom wallet. It detects whether Phantom is
 installed, connects through Phantom's browser provider, shows the connected
 public address, and disconnects again. It never asks for a seed phrase or
-private key, and it does not sign transactions or move tokens. This functionality
-is unchanged by the Mainnet conversion.
+private key, and it does not sign transactions, show balances, swap or move
+tokens. It is a wallet-connect page, not a trading application.
 
 Start the page (plain Node.js, no extra dependencies):
 
@@ -266,8 +275,8 @@ Start the page (plain Node.js, no extra dependencies):
 npm start
 ```
 
-Then open http://localhost:3000. The interface is in `web/` and the little
-static server is `web/server.js`.
+Then open http://localhost:3000. The interface is in `web/` and the static server
+is `web/server.js`.
 
 On mobile, open the page in Phantom's built-in browser. If Phantom already has
 an active session the page reuses it; otherwise a connection request that gets
@@ -295,8 +304,9 @@ the result. That address is the only wallet data the page ever receives.
 
 The page never asks for a seed phrase or private key, never imports or exports a
 keypair, sends nothing to any server, and stores nothing in localStorage,
-sessionStorage or cookies. Future transaction approvals belong to Phantom's own
-signing provider, which would receive the transaction and return a signature.
+sessionStorage or cookies. Future transaction approvals would belong to
+Phantom's own signing provider, which would receive the transaction and return a
+signature.
 
 `web/server.js` needs no environment variables. The optional `PORT` and `HOST`
 overrides are documented in `.env.example`; no file is required.
@@ -311,28 +321,27 @@ npm install
 
 ## Security Rules
 
+-   Never create another USOL mint or deploy a second token.
+-   Never attempt to revoke an authority again or restore a revoked one.
 -   Never request seed phrases or private keys through the website.
 -   Never commit keypair files or secrets; never hardcode a private key.
--   Never revoke the mint or freeze authority.
 -   Never change the confirmed wallet assignments.
 -   Never submit a transaction without the owner's explicit approval.
 -   No test-network endpoint, mint address or metadata record is used by the
     active code.
 
-## Remaining Steps
+## Remaining Work
 
--   [x] Prepare the Mainnet token configuration
--   [x] Remove test-network configuration and scripts
--   [x] Prepare Mainnet launch, upload and metadata scripts
--   [x] Enforce Mainnet genesis validation and message-based fees
--   [x] Offline self-tests for configuration, validation and transaction building
--   [ ] Owner approval to execute the launch
--   [ ] Fund FRPP with Mainnet SOL
--   [ ] Create the USOL Mainnet mint and initial supply
--   [ ] Upload logo/metadata and register Metaplex metadata
--   [ ] Record the mint address and signatures
+Token creation is complete. The remaining items are separate activities and are
+not part of this repository's scripts:
+
+-   [x] Create the USOL Mainnet mint and initial supply
+-   [x] Upload logo/metadata and register Metaplex metadata
+-   [x] Record the mint address, metadata account and signatures
+-   [x] Permanently revoke the mint and freeze authorities
 -   [ ] Verify token discovery in compatible wallets
--   [ ] Prepare liquidity and distribution
+-   [ ] Plan and fund liquidity (separate activity)
+-   [ ] Execute the allocation (separate activity, requires owner approval)
 
 ## Repository
 

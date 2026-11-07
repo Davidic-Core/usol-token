@@ -1,69 +1,58 @@
 #!/usr/bin/env node
 "use strict";
 
-// UnitedSOLANA (USOL) — Solana Mainnet mint launch.
+// UnitedSOLANA (USOL) — Solana Mainnet deployment verification.
 //
-// Dry run by default: validates the Mainnet configuration, the RPC's genesis
-// hash, the fee payer's balance, the real network fee and the exact cost, then
-// prints the plan. Nothing is signed or submitted.
+// USOL already exists on Solana Mainnet. The mint, its Metaplex metadata and the
+// 1,000,000,000 USOL supply were created once, and both the mint and freeze
+// authorities were permanently revoked afterwards. This script therefore never
+// creates a mint, never revokes an authority and never signs or submits a
+// transaction: it reads deployments/mainnet.json and verifies that the record
+// and the on-chain state still describe the deployed token.
 //
-// `--execute` (plus the confirmation phrase) creates the mint, the initial
-// holder's associated token account and the 1,000,000,000 USOL supply in one
-// atomic transaction — the only step in this project that spends Mainnet SOL.
-//
-// `--self-test` checks configuration, validation, fees and the transaction
-// builder offline; it never touches the network.
+// `--self-test` runs the offline checks (configuration, wallet pinning, RPC
+// rules, deployment record integrity and the verification logic) with no
+// network request and nothing spent.
 
 const assert = require("assert");
 const fs = require("fs");
+const path = require("path");
 
-const {
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  sendAndConfirmTransaction
-} = require("@solana/web3.js");
+const { Keypair, PublicKey } = require("@solana/web3.js");
+const { TOKEN_PROGRAM_ID } = require("@solana/spl-token");
 
+const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
 const {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  MINT_SIZE,
-  TOKEN_PROGRAM_ID,
-  getAssociatedTokenAddressSync
-} = require("@solana/spl-token");
+  mplTokenMetadata,
+  fetchMetadataFromSeeds
+} = require("@metaplex-foundation/mpl-token-metadata");
+const { publicKey } = require("@metaplex-foundation/umi");
 
 const config = require("./config/mainnet");
-const { loadState, saveState, assertStateWallets } = require("./lib/state");
-const { withDeploymentLock } = require("./lib/lock");
 const {
-  readKeypair,
-  assertAddress,
-  describeKeypairFile,
-  writeKeypair
-} = require("./lib/wallets");
-const { buildLaunchTransaction } = require("./lib/launch-transaction");
+  loadState,
+  saveState,
+  assertStateWallets,
+  assertStateDeployment
+} = require("./lib/state");
 const { assertMainnetRpc, feeForTransaction } = require("./lib/rpc");
 const {
-  assertExecutionWallets,
-  assertSupplyPlan,
-  assertLaunchTransaction,
-  assertFunding
-} = require("./lib/preflight");
-const {
+  assertMintFields,
   assertMintOnChain,
+  assertMetadataAccount,
+  assertMetadataFields,
   assertHolderTokenAccount,
   assertTokenAccountFields
 } = require("./lib/verify");
-const {
-  heading,
-  formatSol,
-  confirmExecution,
-  wantsExecution
-} = require("./lib/cli");
+const { buildLaunchTransaction } = require("./lib/launch-transaction");
+const { heading } = require("./lib/cli");
 
-// Standard rent-exempt minimums, shown only when the RPC cannot be reached.
-const DEFAULT_MINT_RENT = 1_461_600;
-const DEFAULT_ATA_RENT = 2_039_280;
-const ATA_SIZE = 165;
+// Isolated fixtures for the offline tests: one records the real deployment, the
+// other models a damaged pre-launch record. The live record is never used by a
+// test, so running the tests cannot change what the scripts read.
+const FIXTURE_DIR = path.join(__dirname, "test", "fixtures");
+const DEPLOYED_FIXTURE = path.join(FIXTURE_DIR, "mainnet.deployed.json");
+const BLANK_FIXTURE = path.join(FIXTURE_DIR, "mainnet.blank.json");
 
 function validateConfiguration() {
   const problems = [];
@@ -79,9 +68,17 @@ function validateConfiguration() {
   }
 
   try {
-    assertSupplyPlan();
+    config.assertDeployedMintAddress(config.DEPLOYMENT.mintAddress);
   } catch (error) {
     problems.push(error.message);
+  }
+
+  if (config.AUTHORITIES.mintAuthority !== null) {
+    problems.push("the mint authority must be recorded as revoked (null)");
+  }
+
+  if (config.AUTHORITIES.freezeAuthority !== null) {
+    problems.push("the freeze authority must be recorded as revoked (null)");
   }
 
   if (!fs.existsSync(config.LOGO_PATH)) {
@@ -94,7 +91,7 @@ function validateConfiguration() {
 }
 
 function printConfiguration(rpcUrl) {
-  heading("UnitedSOLANA (USOL) — Mainnet launch");
+  heading("UnitedSOLANA (USOL) — Mainnet deployment verification");
 
   console.log(`Network            Solana Mainnet (${config.NETWORK})`);
   console.log(`RPC                ${rpcUrl}`);
@@ -103,16 +100,17 @@ function printConfiguration(rpcUrl) {
   console.log(`Standard           ${config.TOKEN.standard}`);
   console.log(`Decimals           ${config.TOKEN.decimals}`);
   console.log(
-    `Initial supply     ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL`
+    `Total supply       ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL`
   );
+  console.log(`Mint address       ${config.DEPLOYMENT.mintAddress}`);
   console.log(`Fee payer          ${config.WALLETS.feePayer}`);
-  console.log(`Initial holder     ${config.WALLETS.initialHolder}`);
-  console.log(`Mint authority     ${config.WALLETS.mintAuthority}`);
-  console.log(`Freeze authority   ${config.WALLETS.freezeAuthority}`);
+  console.log(`Original holder    ${config.WALLETS.initialHolder}`);
+  console.log("Mint authority     REVOKED (permanent)");
+  console.log("Freeze authority   REVOKED (permanent)");
 }
 
 function printAllocation() {
-  heading("Planned allocation (recorded only — nothing is transferred)");
+  heading("Planned allocation (recorded plan — not proof of transfers)");
 
   for (const entry of config.ALLOCATION) {
     console.log(
@@ -121,188 +119,53 @@ function printAllocation() {
   }
 
   console.log(
-    `  ${config.allocationTotal().toLocaleString("en-US").padStart(13)} USOL  Total (minted entirely to the HxDW wallet)`
+    `  ${config.allocationTotal().toLocaleString("en-US").padStart(13)} USOL  Total (minted entirely to the HxDW wallet at creation)`
+  );
+  console.log(
+    "\nNothing has been transferred, pooled or distributed by these scripts."
   );
 }
 
-function loadLaunchKeypairs() {
-  const feePayer = readKeypair(config.KEYPAIRS.feePayer, "fee payer");
-  assertAddress(feePayer, config.WALLETS.feePayer, "fee payer");
+// Reads the deployed Metaplex metadata account and checks mint, account and URI.
+async function assertMetadataRegisteredOnChain(umi, state) {
+  const onChain = await fetchMetadataFromSeeds(umi, {
+    mint: publicKey(state.mintAddress)
+  });
 
-  const authority = readKeypair(config.KEYPAIRS.authority, "mint authority");
-  assertAddress(authority, config.WALLETS.mintAuthority, "mint authority");
-  assertAddress(authority, config.WALLETS.freezeAuthority, "freeze authority");
-  assertAddress(authority, config.WALLETS.initialHolder, "initial holder");
-
-  return { feePayer, authority };
+  return assertMetadataFields(
+    {
+      mint: onChain.mint,
+      uri: onChain.uri,
+      address: config.metadataAccountAddress(state.mintAddress)
+    },
+    {
+      mintAddress: state.mintAddress,
+      metadataUri: config.DEPLOYMENT.metadataUri,
+      expectedAccount: config.DEPLOYMENT.metadataAccount
+    }
+  );
 }
 
-function buildPreviewTransaction(mintRentLamports) {
-  return buildLaunchTransaction({
-    mintKeypair: Keypair.generate(),
-    feePayer: new PublicKey(config.WALLETS.feePayer),
-    mintAuthority: new PublicKey(config.WALLETS.mintAuthority),
-    freezeAuthority: new PublicKey(config.WALLETS.freezeAuthority),
-    holder: new PublicKey(config.WALLETS.initialHolder),
-    decimals: config.TOKEN.decimals,
-    rawAmount: config.rawInitialSupply(),
-    mintRentLamports
-  }).transaction;
-}
-
-async function readPreflight(connection) {
-  const preflight = {
-    rpcOk: false,
-    version: null,
-    genesisHash: null,
-    genesisOk: false,
-    balance: null,
-    mintRent: DEFAULT_MINT_RENT,
-    ataRent: DEFAULT_ATA_RENT,
-    feeLamports: null,
-    holderExists: null,
-    error: null
-  };
-
-  try {
-    const version = await connection.getVersion();
-    preflight.version = version["solana-core"] || "unknown";
-
-    preflight.genesisHash = await connection.getGenesisHash();
-    preflight.genesisOk = preflight.genesisHash === config.MAINNET_GENESIS_HASH;
-    preflight.rpcOk = true;
-
-    preflight.balance = await connection.getBalance(
-      new PublicKey(config.WALLETS.feePayer),
-      "confirmed"
-    );
-
-    preflight.mintRent = await connection.getMinimumBalanceForRentExemption(
-      MINT_SIZE
-    );
-    preflight.ataRent = await connection.getMinimumBalanceForRentExemption(
-      ATA_SIZE
-    );
-
-    preflight.holderExists = Boolean(
-      await connection.getAccountInfo(
-        new PublicKey(config.WALLETS.initialHolder),
-        "confirmed"
-      )
-    );
-
-    const preview = buildPreviewTransaction(preflight.mintRent);
-    preflight.feeLamports = (
-      await feeForTransaction(connection, preview)
-    ).feeLamports;
-  } catch (error) {
-    preflight.error = error.message;
-  }
-
-  return preflight;
-}
-
-function printPlan(preflight, keypairError) {
-  heading("Preflight");
-
-  console.log(
-    preflight.rpcOk
-      ? `RPC reachable (solana-core ${preflight.version})`
-      : `RPC not reachable: ${preflight.error}`
-  );
-
-  if (preflight.rpcOk) {
-    console.log(
-      preflight.genesisOk
-        ? `Genesis hash       ${preflight.genesisHash} (Mainnet confirmed)`
-        : `Genesis hash       ${preflight.genesisHash} — NOT Mainnet, execution will be refused`
-    );
-
-    console.log(
-      `Fee payer balance  ${formatSol(preflight.balance)} (${config.WALLETS.feePayer})`
-    );
-    console.log(
-      `Holder wallet      ${preflight.holderExists ? "exists on Mainnet" : "not funded yet (it can still receive tokens)"}`
-    );
-  } else {
-    console.log(
-      "Rent figures below are standard values; the fee is recalculated from the real transaction at execution."
-    );
-  }
-
-  console.log("\nTransaction plan (one atomic transaction):");
-  console.log("  1. Create the USOL mint account (fee payer pays rent)");
-  console.log(`  2. Initialize mint: ${config.TOKEN.decimals} decimals, mint authority ${config.WALLETS.mintAuthority}`);
-  console.log(`  3. Set freeze authority ${config.WALLETS.freezeAuthority}`);
-  console.log(`  4. Create the associated token account for ${config.WALLETS.initialHolder}`);
-  console.log(
-    `  5. Mint ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL to that account`
-  );
-
-  const estimatedTotal =
-    preflight.feeLamports === null
-      ? null
-      : preflight.mintRent + preflight.ataRent + preflight.feeLamports;
-
-  console.log("\nEstimated cost (paid by the fee payer):");
-  console.log(
-    `  Mint account rent      ${formatSol(preflight.mintRent)} (${preflight.mintRent} lamports)`
-  );
-  console.log(
-    `  Token account rent     ${formatSol(preflight.ataRent)} (${preflight.ataRent} lamports)`
-  );
-  console.log(
-    `  Network fee            ${
-      preflight.feeLamports === null
-        ? "calculated at execution"
-        : `${formatSol(preflight.feeLamports)} (${preflight.feeLamports} lamports)`
-    }`
-  );
-  console.log(
-    `  Total                  ${
-      estimatedTotal === null
-        ? "rent only until the RPC answers"
-        : `${formatSol(estimatedTotal)} (${estimatedTotal} lamports)`
-    }`
-  );
-
-  if (estimatedTotal !== null && preflight.balance !== null) {
-    const shortfall = estimatedTotal - preflight.balance;
-    console.log(
-      `  Funding                ${
-        shortfall <= 0
-          ? "sufficient"
-          : `short by ${formatSol(shortfall)} (${shortfall} lamports)`
-      }`
-    );
-  }
-
-  console.log("\nRequired signers:");
-  console.log(`  Fee payer (pays)       ${describeKeypairFile(config.KEYPAIRS.feePayer)} — ${config.KEYPAIRS.feePayer}`);
-  console.log(`  Mint authority         ${describeKeypairFile(config.KEYPAIRS.authority)} — ${config.KEYPAIRS.authority}`);
-  console.log("  Mint account keypair   generated at launch, stored outside the repository");
-
-  if (keypairError) {
-    console.log(`\nNOT READY: ${keypairError.message}`);
-    console.log(
-      "The dry run can still validate configuration and cost; execution needs both keypairs in place."
-    );
-  }
-}
-
-// A recorded mint means the launch already happened: verify it instead of
-// creating a second one. A mismatch stops everything.
+// Verifies the existing deployment. No transaction is built, signed or sent.
 async function verifyRecordedDeployment(state, rpcUrl) {
   const connection = config.createConnection(rpcUrl);
 
-  assertExecutionWallets(state);
+  assertStateWallets(state);
+  assertStateDeployment(state);
 
   heading("Existing Mainnet deployment found");
   console.log(`Recorded mint      ${state.mintAddress}`);
   console.log(`Status             ${state.status}`);
 
   await assertMainnetRpc(connection);
-  await assertMintOnChain(connection, state.mintAddress);
+
+  const mintInfo = await assertMintOnChain(connection, state.mintAddress);
+
+  assertMetadataAccount({
+    mintAddress: state.mintAddress,
+    metadataAccount: state.metadataAccount,
+    metadataUri: state.metadataUri
+  });
 
   const tokenAccountAddress =
     state.associatedTokenAccount ||
@@ -319,236 +182,35 @@ async function verifyRecordedDeployment(state, rpcUrl) {
     expectedAmount: config.rawInitialSupply()
   });
 
-  // Correct the record after a verification failure or a run that stopped
-  // before it could save these fields. No transaction is involved.
+  const umi = createUmi(rpcUrl);
+  umi.use(mplTokenMetadata());
+  await assertMetadataRegisteredOnChain(umi, state);
+
   const needsTokenAccount = !state.associatedTokenAccount;
-  const needsStatusCorrection =
-    state.status === "mint-created" || state.status === "mint-created-needs-review";
+  const needsStatusCorrection = state.status !== config.DEPLOYMENT.status;
 
   if (needsTokenAccount || needsStatusCorrection) {
     if (needsTokenAccount) state.associatedTokenAccount = tokenAccountAddress;
-    if (needsStatusCorrection) state.status = "mint-verified";
+    if (needsStatusCorrection) state.status = config.DEPLOYMENT.status;
     saveState(state);
   }
-
-  console.log(
-    "\nRecorded deployment verified on-chain. No new mint was created and nothing was submitted."
-  );
-  console.log(
-    state.metadataUri
-      ? "Next: register the Metaplex metadata (node register-metadata-mainnet.js)."
-      : "Next: upload the logo and metadata (node upload-metadata-mainnet.js)."
-  );
-}
-
-// Reuses the mint keypair of an unfinished attempt. If its account already
-// exists on-chain, the run was interrupted after the transaction landed: the
-// caller verifies and records that mint instead of creating another one.
-async function resolveMintKeypair(connection) {
-  if (fs.existsSync(config.KEYPAIRS.mint)) {
-    const existing = readKeypair(config.KEYPAIRS.mint, "mint");
-    const account = await connection.getAccountInfo(
-      existing.publicKey,
-      "confirmed"
-    );
-
-    if (account) return { mintKeypair: existing, recovering: true };
-
-    console.log(
-      `\nReusing the mint keypair from a previous attempt: ${existing.publicKey.toBase58()} (no account exists yet).`
-    );
-    return { mintKeypair: existing, recovering: false };
-  }
-
-  const mintKeypair = Keypair.generate();
-  writeKeypair(config.KEYPAIRS.mint, mintKeypair);
-
-  console.log(
-    `\nNew mint keypair written to ${config.KEYPAIRS.mint} (mode 600, outside the repository).`
-  );
-  console.log(`Mint address: ${mintKeypair.publicKey.toBase58()}`);
-
-  return { mintKeypair, recovering: false };
-}
-
-async function recordVerifiedLaunch({ connection, state, mintAddress, tokenAccountAddress, signature }) {
-  const rawAmount = config.rawInitialSupply();
-
-  state.status = "mint-created";
-  state.mintAddress = mintAddress;
-  state.associatedTokenAccount = tokenAccountAddress;
-  if (signature) state.transactions.mintCreation = signature;
-  saveState(state);
-
-  try {
-    await assertMintOnChain(connection, mintAddress);
-    await assertHolderTokenAccount(connection, {
-      mintAddress,
-      tokenAccountAddress,
-      expectedAmount: rawAmount
-    });
-  } catch (error) {
-    state.status = "mint-created-needs-review";
-    saveState(state);
-    throw new Error(
-      `The mint exists but verification failed: ${error.message}\nMint: ${mintAddress}${
-        signature ? `\nSignature: ${signature}` : ""
-      }`
-    );
-  }
-
-  state.status = "mint-verified";
-  saveState(state);
 
   console.log("\nVerified on Mainnet:");
-  console.log(`  Decimals           ${config.TOKEN.decimals}`);
-  console.log(`  Supply             ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL`);
-  console.log(`  Mint authority     ${config.WALLETS.mintAuthority} (active)`);
-  console.log(`  Freeze authority   ${config.WALLETS.freezeAuthority} (active)`);
+  console.log(`  Decimals           ${mintInfo.decimals}`);
+  console.log(
+    `  Supply             ${Number(mintInfo.supply) / 10 ** mintInfo.decimals} USOL`
+  );
+  console.log("  Mint authority     REVOKED (null)");
+  console.log("  Freeze authority   REVOKED (null)");
+  console.log(`  Metadata account   ${state.metadataAccount}`);
+  console.log(`  Metadata URI       ${state.metadataUri}`);
+  console.log(`  Token account      ${tokenAccountAddress}`);
   console.log(`  Holder             ${config.WALLETS.initialHolder}`);
-  console.log(`  Holder balance     ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL`);
-  console.log(`\nMint address       ${mintAddress}`);
-  console.log(`Token account      ${tokenAccountAddress}`);
-  console.log(config.explorerAddressUrl(mintAddress));
-  console.log("\nNext: upload the logo and metadata (node upload-metadata-mainnet.js).");
-}
-
-async function recoverInterruptedLaunch(connection, mintKeypair) {
-  const mintAddress = mintKeypair.publicKey.toBase58();
-  const tokenAccountAddress = getAssociatedTokenAddressSync(
-    mintKeypair.publicKey,
-    new PublicKey(config.WALLETS.initialHolder),
-    false,
-    TOKEN_PROGRAM_ID
-  ).toBase58();
+  console.log(config.explorerAddressUrl(state.mintAddress));
 
   console.log(
-    `\nInterrupted deployment detected: mint ${mintAddress} already exists on-chain. Verifying it instead of creating a second mint.`
+    "\nThe deployment is final: both authorities are permanently revoked, so no further USOL can be minted, frozen or unfrozen. No transaction was built or submitted."
   );
-
-  try {
-    await assertMintOnChain(connection, mintAddress);
-    await assertHolderTokenAccount(connection, {
-      mintAddress,
-      tokenAccountAddress,
-      expectedAmount: config.rawInitialSupply()
-    });
-  } catch (error) {
-    throw new Error(
-      `A mint account exists at ${mintAddress} but it does not match the confirmed launch: ${error.message}\nNothing was changed or recorded. Inspect that mint before retrying.`
-    );
-  }
-
-  const state = loadState();
-  state.recovery = {
-    recoveredAt: new Date().toISOString(),
-    note: "Recovered from an interrupted launch; the creation signature was not recorded. Verify it on the explorer before registering metadata."
-  };
-  state.status = "mint-verified";
-  state.mintAddress = mintAddress;
-  state.associatedTokenAccount = tokenAccountAddress;
-  saveState(state);
-}
-
-async function executeLaunch({ connection, rpcUrl, keypairs, state }) {
-  // Fail closed before anything is written, signed or sent: endpoint, wallets,
-  // supply, fee, balance and the compiled transaction all have to match the
-  // confirmed launch first. Every failure below aborts without spending SOL.
-  config.assertOfficialMainnetRpcUrl(rpcUrl);
-  assertExecutionWallets(state);
-  const rawAmount = assertSupplyPlan();
-
-  console.log("\nConfirming Solana Mainnet before building the transaction…");
-  await assertMainnetRpc(connection);
-
-  const { mintKeypair, recovering } = await resolveMintKeypair(connection);
-
-  if (recovering) {
-    await recoverInterruptedLaunch(connection, mintKeypair);
-    return;
-  }
-
-  const mintRent = await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
-  const ataRent = await connection.getMinimumBalanceForRentExemption(ATA_SIZE);
-
-  const { transaction, mint, associatedTokenAccount } = buildLaunchTransaction({
-    mintKeypair,
-    feePayer: keypairs.feePayer.publicKey,
-    mintAuthority: keypairs.authority.publicKey,
-    freezeAuthority: new PublicKey(config.WALLETS.freezeAuthority),
-    holder: new PublicKey(config.WALLETS.initialHolder),
-    decimals: config.TOKEN.decimals,
-    rawAmount,
-    mintRentLamports: mintRent
-  });
-
-  const expectedMintAuthority = new PublicKey(config.WALLETS.mintAuthority);
-  const expectedFreezeAuthority = new PublicKey(config.WALLETS.freezeAuthority);
-  const expectedHolder = new PublicKey(config.WALLETS.initialHolder);
-
-  assertLaunchTransaction(transaction, {
-    mint,
-    feePayer: keypairs.feePayer.publicKey,
-    mintAuthority: expectedMintAuthority,
-    freezeAuthority: expectedFreezeAuthority,
-    holder: expectedHolder,
-    decimals: config.TOKEN.decimals,
-    rawAmount,
-    mintRentLamports: mintRent
-  });
-
-  // Fee for this exact message: three signatures and four instructions.
-  const { feeLamports } = await feeForTransaction(connection, transaction);
-  const balance = await connection.getBalance(
-    keypairs.feePayer.publicKey,
-    "confirmed"
-  );
-
-  const { requiredLamports } = assertFunding({
-    mintRentLamports: mintRent,
-    ataRentLamports: ataRent,
-    feeLamports,
-    balance,
-    feePayer: config.WALLETS.feePayer
-  });
-
-  console.log(`Network fee for this transaction: ${formatSol(feeLamports)}`);
-  console.log(`Total required: ${formatSol(requiredLamports)}`);
-  console.log(`Fee payer balance: ${formatSol(balance)}`);
-
-  console.log("\nSimulating against Mainnet (no state change)…");
-
-  const simulation = await connection.simulateTransaction(transaction, [
-    keypairs.feePayer,
-    mintKeypair,
-    keypairs.authority
-  ]);
-
-  if (simulation.value.err) {
-    throw new Error(
-      `Simulation failed: ${JSON.stringify(simulation.value.err)} ${(simulation.value.logs || []).join(" | ")}`
-    );
-  }
-
-  console.log("Simulation succeeded. Submitting…");
-
-  const signature = await sendAndConfirmTransaction(
-    connection,
-    transaction,
-    [keypairs.feePayer, mintKeypair, keypairs.authority],
-    { commitment: "confirmed" }
-  );
-
-  console.log(`\nTransaction confirmed: ${signature}`);
-  console.log(config.explorerTransactionUrl(signature));
-
-  await recordVerifiedLaunch({
-    connection,
-    state,
-    mintAddress: mint.toBase58(),
-    tokenAccountAddress: associatedTokenAccount.toBase58(),
-    signature
-  });
 }
 
 async function main() {
@@ -556,67 +218,27 @@ async function main() {
     return selfTest();
   }
 
-  const rpcUrl = config.resolveRpcUrl({ execute: wantsExecution() });
+  // Verification only: no execution flag exists, so no code path here can sign.
+  const rpcUrl = config.resolveRpcUrl();
 
   validateConfiguration();
   printConfiguration(rpcUrl);
+  printAllocation();
 
   const state = loadState();
 
-  if (state.mintAddress) {
-    return verifyRecordedDeployment(state, rpcUrl);
+  if (!state.mintAddress) {
+    throw new Error(
+      `deployments/mainnet.json does not record a mint address. USOL already exists on Mainnet as ${config.DEPLOYMENT.mintAddress}; restore the record instead of creating another mint.`
+    );
   }
 
-  const connection = config.createConnection(rpcUrl);
-
-  let keypairs = null;
-  let keypairError = null;
-
-  try {
-    keypairs = loadLaunchKeypairs();
-  } catch (error) {
-    keypairError = error;
-  }
-
-  const preflight = await readPreflight(connection);
-  printPlan(preflight, keypairError);
-  printAllocation();
-
-  const approved = await confirmExecution({
-    action: "create the USOL mint and mint 1,000,000,000 USOL"
-  });
-
-  if (!approved) return;
-
-  if (keypairError) {
-    throw new Error(`${keypairError.message} Nothing was submitted.`);
-  }
-
-  if (!preflight.rpcOk) {
-    throw new Error(`RPC is not reachable: ${preflight.error}`);
-  }
-
-  await withDeploymentLock("launch", async () => {
-    const currentState = loadState();
-
-    if (currentState.mintAddress) {
-      throw new Error(
-        `A Mainnet mint is already recorded: ${currentState.mintAddress}. Refusing to create a second mint.`
-      );
-    }
-
-    await executeLaunch({
-      connection,
-      rpcUrl,
-      keypairs,
-      state: currentState
-    });
-  });
+  return verifyRecordedDeployment(state, rpcUrl);
 }
 
 // ---------------------------------------------------------------------------
-// Offline self-test: proves configuration, validation, genesis check, dynamic
-// fee calculation and the launch transaction without any network request.
+// Offline self-test: proves configuration, wallet pinning, RPC rules, record
+// integrity and the verification logic without any network request.
 // ---------------------------------------------------------------------------
 
 async function selfTest() {
@@ -642,7 +264,6 @@ async function selfTest() {
     }
   };
 
-  // Runs `fn` with USOL_RPC_URL set, restoring the previous value afterwards.
   const withRpcOverride = (value, fn) => {
     const original = process.env.USOL_RPC_URL;
     process.env.USOL_RPC_URL = value;
@@ -655,15 +276,13 @@ async function selfTest() {
     }
   };
 
-  check("configuration matches the confirmed token details, wallets and allocation", () => {
+  check("configuration matches the confirmed token details and wallets", () => {
     validateConfiguration();
   });
 
-  check("all four confirmed wallets are valid on-curve wallet addresses", () => {
+  check("both confirmed wallets are valid on-curve wallet addresses", () => {
     config.assertValidWalletAddress(config.WALLETS.feePayer, "fee payer");
-    config.assertValidWalletAddress(config.WALLETS.initialHolder, "initial holder");
-    config.assertValidWalletAddress(config.WALLETS.mintAuthority, "mint authority");
-    config.assertValidWalletAddress(config.WALLETS.freezeAuthority, "freeze authority");
+    config.assertValidWalletAddress(config.WALLETS.initialHolder, "original holder");
   });
 
   check("malformed and off-curve addresses are rejected", () => {
@@ -683,10 +302,7 @@ async function selfTest() {
     );
     assert.throws(
       () =>
-        config.assertValidWalletAddress(
-          offCurve.toBase58(),
-          "off-curve account"
-        ),
+        config.assertValidWalletAddress(offCurve.toBase58(), "off-curve account"),
       /on-curve/
     );
   });
@@ -698,93 +314,253 @@ async function selfTest() {
     }
   });
 
-  const mintKeypair = Keypair.generate();
-  const feePayer = Keypair.generate();
-  const mintAuthority = Keypair.generate();
-  const freezeAuthority = Keypair.generate();
-  const holder = new PublicKey(config.WALLETS.initialHolder);
-  const decimals = config.TOKEN.decimals;
-  const rawAmount = config.rawInitialSupply();
-  const mintRentLamports = DEFAULT_MINT_RENT;
+  check("a changed confirmed wallet assignment is refused", () => {
+    assert.deepStrictEqual(
+      config.assertConfirmedWallets(),
+      config.CONFIRMED_WALLETS
+    );
 
-  const { transaction, associatedTokenAccount } = buildLaunchTransaction({
-    mintKeypair,
-    feePayer: feePayer.publicKey,
-    mintAuthority: mintAuthority.publicKey,
-    freezeAuthority: freezeAuthority.publicKey,
-    holder,
-    decimals,
-    rawAmount,
-    mintRentLamports
+    for (const role of ["feePayer", "initialHolder"]) {
+      const swapped = {
+        ...config.WALLETS,
+        [role]: Keypair.generate().publicKey.toBase58()
+      };
+
+      assert.throws(
+        () => config.assertConfirmedWallets(swapped),
+        /differ from the confirmed Mainnet assignments/,
+        `${role} must not be swappable`
+      );
+    }
   });
 
-  const [createMintIx, initMintIx, createAtaIx, mintToIx] = transaction.instructions;
-  const initialize = initMintIx.data;
-
-  check("launch transaction has four instructions", () => {
-    assert.strictEqual(transaction.instructions.length, 4);
-  });
-
-  check("mint account is allocated by the SPL Token program", () => {
-    assert.ok(createMintIx.programId.equals(SystemProgram.programId));
-    assert.strictEqual(createMintIx.keys[0].pubkey.toBase58(), feePayer.publicKey.toBase58());
-    assert.strictEqual(createMintIx.keys[1].pubkey.toBase58(), mintKeypair.publicKey.toBase58());
-    assert.strictEqual(Number(createMintIx.data.readBigUInt64LE(12)), MINT_SIZE);
+  check("a different mint address is never accepted as USOL", () => {
     assert.strictEqual(
-      new PublicKey(createMintIx.data.subarray(20, 52)).toBase58(),
-      TOKEN_PROGRAM_ID.toBase58()
+      config.assertDeployedMintAddress(config.DEPLOYMENT.mintAddress),
+      config.DEPLOYMENT.mintAddress
+    );
+
+    assert.throws(
+      () =>
+        config.assertDeployedMintAddress(
+          Keypair.generate().publicKey.toBase58()
+        ),
+      /second token/
     );
   });
 
-  check("mint is initialized with 9 decimals and both authorities written separately", () => {
-    assert.ok(initMintIx.programId.equals(TOKEN_PROGRAM_ID));
-    assert.strictEqual(initialize[0], 20, "expected InitializeMint2");
-    assert.strictEqual(initialize[1], 9);
+  check("recorded mint and metadata account describe the deployed USOL token", () => {
+    const state = loadState(DEPLOYED_FIXTURE);
+
+    assert.strictEqual(assertStateWallets(state), state);
+    assert.strictEqual(assertStateDeployment(state), state);
+
+    assert.strictEqual(state.mintAddress, config.DEPLOYMENT.mintAddress);
     assert.strictEqual(
-      new PublicKey(initialize.subarray(2, 34)).toBase58(),
-      mintAuthority.publicKey.toBase58()
+      state.metadataAccount,
+      config.metadataAccountAddress(config.DEPLOYMENT.mintAddress)
     );
-    assert.strictEqual(initialize[34], 1, "freeze authority must be present");
-    assert.strictEqual(
-      new PublicKey(initialize.subarray(35, 67)).toBase58(),
-      freezeAuthority.publicKey.toBase58()
+    assert.strictEqual(state.metadataAccount, config.DEPLOYMENT.metadataAccount);
+    assert.strictEqual(state.metadataUri, config.DEPLOYMENT.metadataUri);
+    assert.strictEqual(state.status, "mainnet-deployed-and-verified");
+  });
+
+  check("a blank or tampered deployment record is refused, never re-created", () => {
+    const blank = loadState(BLANK_FIXTURE);
+    const deployed = loadState(DEPLOYED_FIXTURE);
+
+    assert.throws(() => assertStateDeployment(blank), /does not record a mint/);
+    assert.throws(
+      () =>
+        assertStateDeployment({
+          ...deployed,
+          mintAddress: Keypair.generate().publicKey.toBase58()
+        }),
+      /Refusing to continue/
+    );
+    assert.throws(
+      () =>
+        assertStateDeployment({
+          ...deployed,
+          metadataUri: "https://example.invalid/usol.json"
+        }),
+      /metadata URI/
     );
   });
 
-  check("initial holder gets an associated token account it owns", () => {
-    assert.ok(createAtaIx.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID));
-    assert.strictEqual(createAtaIx.keys[0].pubkey.toBase58(), feePayer.publicKey.toBase58());
-    assert.strictEqual(
-      createAtaIx.keys[1].pubkey.toBase58(),
-      associatedTokenAccount.toBase58()
+  check("a deployment record with changed wallets is refused", () => {
+    const state = loadState(DEPLOYED_FIXTURE);
+    assert.strictEqual(assertStateWallets(state), state);
+
+    const tampered = {
+      ...state,
+      wallets: {
+        ...state.wallets,
+        initialHolder: Keypair.generate().publicKey.toBase58()
+      }
+    };
+
+    assert.throws(
+      () => assertStateWallets(tampered),
+      /differ from the confirmed assignments/
     );
-    assert.strictEqual(createAtaIx.keys[2].pubkey.toBase58(), holder.toBase58());
-    assert.strictEqual(createAtaIx.keys[3].pubkey.toBase58(), mintKeypair.publicKey.toBase58());
   });
 
-  check("mint instruction prints exactly 1,000,000,000 USOL to the holder", () => {
-    assert.ok(mintToIx.programId.equals(TOKEN_PROGRAM_ID));
-    assert.strictEqual(mintToIx.data[0], 7, "expected MintTo");
-    assert.strictEqual(mintToIx.data.readBigUInt64LE(1), 1_000_000_000n * 10n ** 9n);
+  // The deployed mint fields: nine decimals, one billion tokens and both
+  // authorities revoked. These stubs stand in for a getMint() response.
+  const deployedMint = {
+    decimals: config.TOKEN.decimals,
+    supply: config.rawInitialSupply(),
+    mintAuthority: null,
+    freezeAuthority: null
+  };
+
+  check("the deployed mint has 9 decimals, 1,000,000,000 USOL and revoked authorities", () => {
     assert.strictEqual(
-      mintToIx.keys[1].pubkey.toBase58(),
-      associatedTokenAccount.toBase58()
+      assertMintFields(deployedMint, {
+        mintAddress: config.DEPLOYMENT.mintAddress,
+        decimals: config.TOKEN.decimals,
+        rawAmount: config.rawInitialSupply()
+      }),
+      deployedMint
     );
+    assert.strictEqual(config.rawInitialSupply(), 1_000_000_000n * 10n ** 9n);
+  });
+
+  check("an active mint or freeze authority fails verification", () => {
+    const holderAuthority = new PublicKey(config.WALLETS.initialHolder);
+
+    assert.throws(
+      () =>
+        assertMintFields(
+          { ...deployedMint, mintAuthority: holderAuthority },
+          {
+            mintAddress: config.DEPLOYMENT.mintAddress,
+            decimals: config.TOKEN.decimals,
+            rawAmount: config.rawInitialSupply()
+          }
+        ),
+      /Mint authority is/
+    );
+
+    assert.throws(
+      () =>
+        assertMintFields(
+          { ...deployedMint, freezeAuthority: holderAuthority },
+          {
+            mintAddress: config.DEPLOYMENT.mintAddress,
+            decimals: config.TOKEN.decimals,
+            rawAmount: config.rawInitialSupply()
+          }
+        ),
+      /Freeze authority is/
+    );
+
+    assert.throws(
+      () =>
+        assertMintFields(
+          { ...deployedMint, decimals: 6 },
+          {
+            mintAddress: config.DEPLOYMENT.mintAddress,
+            decimals: config.TOKEN.decimals,
+            rawAmount: config.rawInitialSupply()
+          }
+        ),
+      /decimals/
+    );
+
+    assert.throws(
+      () =>
+        assertMintFields(
+          { ...deployedMint, supply: 1n },
+          {
+            mintAddress: config.DEPLOYMENT.mintAddress,
+            decimals: config.TOKEN.decimals,
+            rawAmount: config.rawInitialSupply()
+          }
+        ),
+      /Supply is/
+    );
+  });
+
+  check("the metadata account must be the PDA of the deployed mint", () => {
     assert.strictEqual(
-      mintToIx.keys[2].pubkey.toBase58(),
-      mintAuthority.publicKey.toBase58()
+      config.metadataAccountAddress(config.DEPLOYMENT.mintAddress),
+      config.DEPLOYMENT.metadataAccount
     );
-    assert.ok(mintToIx.keys[2].isSigner, "mint authority must sign");
+
+    assert.notStrictEqual(
+      config.metadataAccountAddress(
+        Keypair.generate().publicKey.toBase58()
+      ),
+      config.DEPLOYMENT.metadataAccount,
+      "an unrelated mint must not derive the USOL metadata account"
+    );
+
+    assert.throws(
+      () =>
+        assertMetadataAccount({
+          mintAddress: config.DEPLOYMENT.mintAddress,
+          metadataAccount: Keypair.generate().publicKey.toBase58(),
+          metadataUri: config.DEPLOYMENT.metadataUri
+        }),
+      /Metadata account is/
+    );
+
+    assert.throws(
+      () =>
+        assertMetadataAccount({
+          mintAddress: config.DEPLOYMENT.mintAddress,
+          metadataAccount: config.DEPLOYMENT.metadataAccount,
+          metadataUri: "https://example.invalid/usol.json"
+        }),
+      /Metadata URI is/
+    );
+  });
+
+  check("on-chain metadata fields must match the deployed mint and URI", () => {
+    const fields = {
+      mint: config.DEPLOYMENT.mintAddress,
+      uri: config.DEPLOYMENT.metadataUri,
+      address: config.DEPLOYMENT.metadataAccount
+    };
+    const expected = {
+      mintAddress: config.DEPLOYMENT.mintAddress,
+      metadataUri: config.DEPLOYMENT.metadataUri,
+      expectedAccount: config.DEPLOYMENT.metadataAccount
+    };
+
+    assert.strictEqual(assertMetadataFields(fields, expected), fields);
+
+    assert.throws(
+      () =>
+        assertMetadataFields(
+          { ...fields, mint: Keypair.generate().publicKey.toBase58() },
+          expected
+        ),
+      /Metadata belongs to mint/
+    );
+
+    assert.throws(
+      () =>
+        assertMetadataFields(
+          { ...fields, uri: "https://example.invalid/usol.json" },
+          expected
+        ),
+      /Metadata URI is/
+    );
   });
 
   check("token account checks reject the wrong mint, owner and balance", () => {
-    const mint = mintKeypair.publicKey.toBase58();
-    const tokenAccountAddress = associatedTokenAccount.toBase58();
-    const account = { mint: mintKeypair.publicKey, owner: holder, amount: rawAmount };
+    const mint = new PublicKey(config.DEPLOYMENT.mintAddress);
+    const holder = new PublicKey(config.WALLETS.initialHolder);
+    const tokenAccountAddress = Keypair.generate().publicKey.toBase58();
+    const rawAmount = config.rawInitialSupply();
+    const account = { mint, owner: holder, amount: rawAmount };
 
     assert.strictEqual(
       assertTokenAccountFields(account, {
-        mintAddress: mint,
+        mintAddress: mint.toBase58(),
         tokenAccountAddress,
         expectedAmount: rawAmount
       }).amount,
@@ -795,7 +571,7 @@ async function selfTest() {
       () =>
         assertTokenAccountFields(
           { ...account, mint: Keypair.generate().publicKey },
-          { mintAddress: mint, tokenAccountAddress }
+          { mintAddress: mint.toBase58(), tokenAccountAddress }
         ),
       /belongs to mint/
     );
@@ -804,7 +580,7 @@ async function selfTest() {
       () =>
         assertTokenAccountFields(
           { ...account, owner: Keypair.generate().publicKey },
-          { mintAddress: mint, tokenAccountAddress }
+          { mintAddress: mint.toBase58(), tokenAccountAddress }
         ),
       /is owned by/
     );
@@ -812,7 +588,7 @@ async function selfTest() {
     assert.throws(
       () =>
         assertTokenAccountFields(account, {
-          mintAddress: mint,
+          mintAddress: mint.toBase58(),
           tokenAccountAddress,
           expectedAmount: rawAmount + 1n
         }),
@@ -820,44 +596,11 @@ async function selfTest() {
     );
   });
 
-  check("all three required signers sign the transaction", () => {
-    // A throwaway blockhash is enough to assemble and verify signatures offline.
-    transaction.feePayer = feePayer.publicKey;
-    transaction.recentBlockhash = "11111111111111111111111111111111";
-    transaction.sign(feePayer, mintKeypair, mintAuthority);
-
-    assert.strictEqual(
-      transaction.signatures.length,
-      3,
-      "fee payer, mint keypair and authority must each have a signature slot"
-    );
-
-    for (const { publicKey, signature } of transaction.signatures) {
-      assert.strictEqual(signature.length, 64, `${publicKey.toBase58()} did not sign`);
-    }
-
-    if (typeof transaction.verifySignatures === "function") {
-      assert.ok(transaction.verifySignatures(), "signatures must verify");
-    }
-  });
-
-  check("a keypair that is not the confirmed wallet is rejected", () => {
-    assert.throws(
-      () => assertAddress(Keypair.generate(), config.WALLETS.feePayer, "fee payer"),
-      /Refusing to continue/
-    );
-  });
-
   check("a non-Mainnet RPC override is rejected", () => {
-    const original = process.env.USOL_RPC_URL;
-    process.env.USOL_RPC_URL = "https://api.testnet.solana.com";
-
-    try {
-      assert.throws(() => config.resolveRpcUrl(), /refusing/);
-    } finally {
-      if (original === undefined) delete process.env.USOL_RPC_URL;
-      else process.env.USOL_RPC_URL = original;
-    }
+    assert.throws(
+      () => withRpcOverride("https://api.testnet.solana.com", () => config.resolveRpcUrl()),
+      /refusing/
+    );
   });
 
   check("only the exact official HTTPS Mainnet origin is accepted", () => {
@@ -907,140 +650,6 @@ async function selfTest() {
     }
   });
 
-  check("a changed confirmed wallet assignment is refused", () => {
-    assert.deepStrictEqual(
-      config.assertConfirmedWallets(),
-      config.CONFIRMED_WALLETS
-    );
-
-    for (const role of [
-      "feePayer",
-      "initialHolder",
-      "mintAuthority",
-      "freezeAuthority"
-    ]) {
-      const swapped = {
-        ...config.WALLETS,
-        [role]: Keypair.generate().publicKey.toBase58()
-      };
-
-      assert.throws(
-        () => config.assertConfirmedWallets(swapped),
-        /differ from the confirmed Mainnet assignments/,
-        `${role} must not be swappable`
-      );
-    }
-  });
-
-  check("a deployment record with changed wallets is refused", () => {
-    const state = loadState();
-    assert.strictEqual(assertStateWallets(state), state);
-
-    const tampered = {
-      ...state,
-      wallets: {
-        ...state.wallets,
-        initialHolder: Keypair.generate().publicKey.toBase58()
-      }
-    };
-
-    assert.throws(
-      () => assertStateWallets(tampered),
-      /differ from the confirmed assignments/
-    );
-  });
-
-  check("a launch transaction with a changed authority or amount is refused", () => {
-    const confirmed = {
-      feePayer: feePayer.publicKey,
-      mintAuthority: mintAuthority.publicKey,
-      freezeAuthority: freezeAuthority.publicKey,
-      holder,
-      decimals,
-      rawAmount,
-      mintRentLamports
-    };
-
-    // The transaction the script builds passes the gate.
-    assert.strictEqual(
-      assertLaunchTransaction(transaction, { ...confirmed, mint: mintKeypair.publicKey }).toBase58(),
-      associatedTokenAccount.toBase58()
-    );
-
-    // An authority that is not the confirmed one is refused.
-    const otherAuthority = Keypair.generate().publicKey;
-    assert.throws(
-      () =>
-        assertLaunchTransaction(transaction, {
-          ...confirmed,
-          mint: mintKeypair.publicKey,
-          mintAuthority: otherAuthority
-        }),
-      /mint authority/
-    );
-
-    // A supply that is not the confirmed 1,000,000,000 USOL is refused.
-    assert.throws(
-      () =>
-        assertLaunchTransaction(transaction, {
-          ...confirmed,
-          mint: mintKeypair.publicKey,
-          rawAmount: rawAmount + 1n
-        }),
-      /minted amount/
-    );
-
-    const changedHolder = Keypair.generate().publicKey;
-    assert.throws(
-      () =>
-        assertLaunchTransaction(transaction, {
-          ...confirmed,
-          mint: mintKeypair.publicKey,
-          holder: changedHolder
-        }),
-      /token account/
-    );
-  });
-
-  check("the fee payer must cover rent and fee before signing", () => {
-    const fee = 5_000;
-    const requiredLamports = DEFAULT_MINT_RENT + DEFAULT_ATA_RENT + fee;
-
-    const approved = assertFunding({
-      mintRentLamports: DEFAULT_MINT_RENT,
-      ataRentLamports: DEFAULT_ATA_RENT,
-      feeLamports: fee,
-      balance: requiredLamports,
-      feePayer: config.WALLETS.feePayer
-    });
-
-    assert.strictEqual(approved.requiredLamports, requiredLamports);
-
-    assert.throws(
-      () =>
-        assertFunding({
-          mintRentLamports: DEFAULT_MINT_RENT,
-          ataRentLamports: DEFAULT_ATA_RENT,
-          feeLamports: fee,
-          balance: requiredLamports - 1,
-          feePayer: config.WALLETS.feePayer
-        }),
-      /holds/
-    );
-
-    assert.throws(
-      () =>
-        assertFunding({
-          mintRentLamports: DEFAULT_MINT_RENT,
-          ataRentLamports: DEFAULT_ATA_RENT,
-          feeLamports: null,
-          balance: requiredLamports,
-          feePayer: config.WALLETS.feePayer
-        }),
-      /network fee/
-    );
-  });
-
   await checkAsync("the Mainnet genesis hash is required and other clusters are refused", async () => {
     const mainnetStub = {
       getGenesisHash: async () => config.MAINNET_GENESIS_HASH
@@ -1053,22 +662,34 @@ async function selfTest() {
       await assertMainnetRpc(mainnetStub),
       config.MAINNET_GENESIS_HASH
     );
-    await assert.rejects(() => assertMainnetRpc(otherClusterStub), /not Solana Mainnet/);
+    await assert.rejects(
+      () => assertMainnetRpc(otherClusterStub),
+      /not Solana Mainnet/
+    );
   });
 
-  await checkAsync("the fee comes from the message, not a hardcoded constant", async () => {
-    const feeMessage = buildPreviewTransaction(mintRentLamports);
+  await checkAsync("the fee still comes from the message, not a hardcoded constant", async () => {
+    // Historical launch transaction, kept as an offline audit of the original
+    // atomic design. No script can send it: USOL already exists.
+    const preview = buildLaunchTransaction({
+      mintKeypair: Keypair.generate(),
+      feePayer: Keypair.generate().publicKey,
+      mintAuthority: Keypair.generate().publicKey,
+      freezeAuthority: Keypair.generate().publicKey,
+      holder: new PublicKey(config.WALLETS.initialHolder),
+      decimals: config.TOKEN.decimals,
+      rawAmount: config.rawInitialSupply(),
+      mintRentLamports: 1_461_600
+    }).transaction;
+
     const feeStub = {
       getLatestBlockhash: async () => ({
         blockhash: "11111111111111111111111111111111"
       }),
-      getFeeForMessage: async (message) => {
-        assert.strictEqual(message.header.numRequiredSignatures, 3);
-        return { value: 7_500 };
-      }
+      getFeeForMessage: async () => ({ value: 7_500 })
     };
 
-    const { feeLamports } = await feeForTransaction(feeStub, feeMessage);
+    const { feeLamports } = await feeForTransaction(feeStub, preview);
     assert.strictEqual(feeLamports, 7_500);
 
     const nullFeeStub = {
@@ -1079,21 +700,9 @@ async function selfTest() {
     };
 
     await assert.rejects(
-      () => feeForTransaction(nullFeeStub, buildPreviewTransaction(mintRentLamports)),
+      () => feeForTransaction(nullFeeStub, preview),
       /refusing to guess/
     );
-  });
-
-  check("the deployment record stores the mint field and planned allocation", () => {
-    const state = loadState();
-    assert.ok(Object.prototype.hasOwnProperty.call(state, "mintAddress"));
-    assert.strictEqual(state.network, "mainnet-beta");
-    assert.strictEqual(state.mintAddress, null);
-    const total = state.plannedAllocation.reduce(
-      (sum, entry) => sum + BigInt(entry.amount),
-      0n
-    );
-    assert.strictEqual(total, config.TOKEN.initialSupply);
   });
 
   for (const result of results) {

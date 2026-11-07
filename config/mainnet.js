@@ -28,7 +28,7 @@ const LOCAL_RPC_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 const MAINNET_GENESIS_HASH =
   "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d";
 
-// Token details, exactly as confirmed for the Mainnet launch.
+// Token details, exactly as deployed on Solana Mainnet.
 const TOKEN = {
   name: "UnitedSOLANA",
   symbol: "USOL",
@@ -39,29 +39,63 @@ const TOKEN = {
     "UnitedSOLANA (USOL) is a high-speed community and utility token built on the Solana blockchain. Designed to facilitate seamless decentralized trading, liquidity pairing, and ecosystem transaction fees across Solana dApps"
 };
 
-// The four assignments confirmed by the project owner. This literal is the
-// pin: `WALLETS` below must match it exactly before anything can run or sign.
-// Editing `WALLETS` alone is therefore not enough to move USOL to another
-// wallet, and the mismatch is reported as an error instead of being accepted.
-// The fee payer pays transaction fees and rents; the HxDW wallet is the initial
-// holder and keeps the mint and freeze authorities.
+// USOL already exists on Solana Mainnet. These values are final on-chain facts:
+// the mint, its metadata and its supply were created once, and both the mint and
+// freeze authorities were permanently revoked afterwards. Nothing in this
+// repository may create another USOL mint or restore an authority.
+const DEPLOYMENT = Object.freeze({
+  status: "mainnet-deployed-and-verified",
+  mintAddress: "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG",
+  metadataAccount: "4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc",
+  imageUri:
+    "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo",
+  metadataUri:
+    "https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY",
+  transactions: Object.freeze({
+    mintCreation:
+      "3N1UJdVAC8AGiCe9mJetrZHzBNW3aZTnAgfqtjoDMQey91jphBri5SGXsFBzt1cdnQAUtaA54Sv9k211EiJoHdUY",
+    metadataRegistration:
+      "2LKc5pLimSyiAQhCsUYpYNvjySjJZ8asmHo8qtopf3J6wvgqF2Abx1oYVBLK2gUT3niS4CKyvDoXJShuoJuEuD8C"
+  })
+});
+
+// The mint and freeze authorities no longer exist. `null` is the on-chain
+// value for both: no keypair can mint additional USOL or freeze an account.
+const AUTHORITIES = Object.freeze({
+  mintAuthority: null,
+  freezeAuthority: null,
+  revoked: true,
+  mintRevocationTransaction:
+    "3N5WpNkkJQ3uSEtGBBxU7z5mkcesJnZaVyShb1mMhRPYWsVNXdYYYE8YbZieSZkreMfkReFuRY4aQqMvYz26dCAe",
+  freezeRevocationTransaction:
+    "3ZjBcDEMmoYBSwD8y2GyJVkgxkGyWJQpc4aEowXmrn7bQ3upzeHyxpB2hQhNEADBiDotCmngFDMqUxkXp8kR2JJ8"
+});
+
+// The two wallet assignments confirmed by the project owner. This literal is the
+// pin: `WALLETS` below must match it exactly before anything can run. Editing
+// `WALLETS` alone is therefore not enough to move USOL to another wallet, and
+// the mismatch is reported as an error instead of being accepted.
+// The fee payer pays transaction fees and rents; HxDW is the original holder of
+// the supply. Neither wallet is, or may become, a mint or freeze authority.
 const CONFIRMED_WALLETS = Object.freeze({
   feePayer: "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU",
-  initialHolder: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
-  mintAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT",
-  freezeAuthority: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
+  initialHolder: "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
 });
 
 const WALLETS = {
   feePayer: CONFIRMED_WALLETS.feePayer,
-  initialHolder: CONFIRMED_WALLETS.initialHolder,
-  mintAuthority: CONFIRMED_WALLETS.mintAuthority,
-  freezeAuthority: CONFIRMED_WALLETS.freezeAuthority
+  initialHolder: CONFIRMED_WALLETS.initialHolder
 };
 
-// Planned distribution of the initial supply. This is a record only: the whole
-// supply is minted to the HxDW wallet and nothing is transferred or pooled by
-// the deployment scripts.
+// The Metaplex metadata has its own update authority, separate from the token
+// authorities: it can change metadata only and cannot create or freeze USOL.
+// HxDW signed the metadata registration, so it is the authority used by the
+// historical registration script.
+const METADATA_UPDATE_AUTHORITY = WALLETS.initialHolder;
+
+// Planned distribution of the deployed supply. This is a record only: the whole
+// supply was minted to the HxDW wallet and nothing has been transferred or
+// pooled. It is a plan, not proof that any transfer happened.
 const ALLOCATION = [
   {
     key: "liquidityReserve",
@@ -99,8 +133,8 @@ const LOGO_PATH = path.join(REPO_ROOT, "logo.png");
 // in by the Mainnet upload script.
 const METADATA_TEMPLATE_PATH = path.join(REPO_ROOT, "metadata.json");
 
-// Deployment record. `mintAddress` stays null until the Mainnet mint has been
-// created and confirmed; the deploy script is the only writer.
+// Deployment record. `mintAddress` records the existing Mainnet mint; a record
+// without one is treated as damaged and is never a reason to create a new mint.
 const STATE_PATH = path.join(REPO_ROOT, "deployments", "mainnet.json");
 
 // Keypairs live outside the repository, in the owner's home directory.
@@ -130,9 +164,7 @@ const METADATA_PROGRAM_ID = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 
 const WALLET_LABELS = {
   feePayer: "fee payer",
-  initialHolder: "initial holder",
-  mintAuthority: "mint authority",
-  freezeAuthority: "freeze authority"
+  initialHolder: "original holder"
 };
 
 const BASE58_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -198,7 +230,7 @@ function assertConfirmedWallets(wallets = WALLETS) {
 }
 
 // Every configured wallet is strictly validated, and the roles must not overlap
-// in a way that would let one wallet pay for and authorize its own token.
+// in a way that would let one wallet pay for and hold the whole supply.
 function assertValidWallets() {
   assertConfirmedWallets();
 
@@ -207,17 +239,36 @@ function assertValidWallets() {
   }
 
   if (WALLETS.feePayer === WALLETS.initialHolder) {
-    throw new Error("fee payer and initial holder must be different wallets");
-  }
-
-  if (
-    WALLETS.feePayer === WALLETS.mintAuthority ||
-    WALLETS.feePayer === WALLETS.freezeAuthority
-  ) {
-    throw new Error("the fee payer must not act as a token authority");
+    throw new Error("fee payer and original holder must be different wallets");
   }
 
   return WALLETS;
+}
+
+// The recorded mint must be the USOL mint that already exists on Mainnet. A
+// different address is never treated as "the token to create": it is refused.
+function assertDeployedMintAddress(mintAddress) {
+  if (mintAddress !== DEPLOYMENT.mintAddress) {
+    throw new Error(
+      `Recorded mint is ${String(mintAddress)}, but USOL already exists on Mainnet as ${DEPLOYMENT.mintAddress}. A different mint would be a second token; refusing to continue.`
+    );
+  }
+
+  return mintAddress;
+}
+
+// The Metaplex metadata account is a PDA of the mint. Deriving it here lets the
+// deployment record be checked offline against the deployed mint.
+function metadataAccountAddress(mintAddress) {
+  const programId = new PublicKey(METADATA_PROGRAM_ID);
+  const mint = new PublicKey(mintAddress);
+
+  const [address] = PublicKey.findProgramAddressSync(
+    [Buffer.from("metadata"), programId.toBuffer(), mint.toBuffer()],
+    programId
+  );
+
+  return address.toBase58();
 }
 
 function rawInitialSupply() {
@@ -334,8 +385,11 @@ module.exports = {
   MAINNET_RPC_ORIGIN,
   MAINNET_GENESIS_HASH,
   TOKEN,
+  DEPLOYMENT,
+  AUTHORITIES,
   WALLETS,
   CONFIRMED_WALLETS,
+  METADATA_UPDATE_AUTHORITY,
   ALLOCATION,
   LOGO_PATH,
   METADATA_TEMPLATE_PATH,
@@ -349,6 +403,8 @@ module.exports = {
   assertValidWalletAddress,
   assertConfirmedWallets,
   assertValidWallets,
+  assertDeployedMintAddress,
+  metadataAccountAddress,
   rawInitialSupply,
   allocationTotal,
   isOfficialMainnetRpcUrl,

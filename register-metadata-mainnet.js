@@ -4,20 +4,22 @@
 // UnitedSOLANA (USOL) — Metaplex metadata registration on Solana Mainnet.
 //
 // Registers the token name, symbol, logo/metadata URI and description for the
-// mint recorded in deployments/mainnet.json. The mint and freeze authorities stay
-// with the confirmed HxDW wallet; nothing is revoked.
+// mint recorded in deployments/mainnet.json.
+//
+// USOL is already registered on Mainnet: the metadata account and registration
+// signature are recorded, so this script refuses to register a second time. The
+// mint and freeze authorities are permanently revoked (null); HxDW holds only
+// the Metaplex metadata update authority and cannot mint or freeze USOL.
 //
 // Every validation fails closed: a mint that does not match the confirmed
 // configuration, an unreachable metadata URI, or metadata that is already
 // registered stops the run before anything is signed.
 //
-// The deployment record is only marked ready after the metadata has been read
-// back from Mainnet and matches this configuration.
-//
-// Dry run by default. `--execute` (plus the confirmation phrase) sends one
-// transaction, signed by the fee payer and the mint authority.
+// Dry run by default. `--execute` (plus the confirmation phrase) would send one
+// registration transaction, and only if no metadata were recorded yet.
 
 const fs = require("fs");
+const path = require("path");
 const assert = require("assert");
 
 const { PublicKey, Keypair } = require("@solana/web3.js");
@@ -39,7 +41,12 @@ const {
 const { base58 } = require("@metaplex-foundation/umi/serializers");
 
 const config = require("./config/mainnet");
-const { loadState, saveState, assertStateWallets } = require("./lib/state");
+const {
+  loadState,
+  saveState,
+  assertStateWallets,
+  assertStateDeployment
+} = require("./lib/state");
 const { withDeploymentLock } = require("./lib/lock");
 const {
   readKeypair,
@@ -85,9 +92,12 @@ function loadRegistrationKeypairs() {
   const feePayer = readKeypair(config.KEYPAIRS.feePayer, "fee payer");
   assertAddress(feePayer, config.WALLETS.feePayer, "fee payer");
 
-  const authority = readKeypair(config.KEYPAIRS.authority, "mint authority");
-  assertAddress(authority, config.WALLETS.mintAuthority, "mint authority");
-  assertAddress(authority, config.WALLETS.freezeAuthority, "freeze authority");
+  const authority = readKeypair(config.KEYPAIRS.authority, "metadata update authority");
+  assertAddress(
+    authority,
+    config.METADATA_UPDATE_AUTHORITY,
+    "metadata update authority"
+  );
 
   return { feePayer, authority };
 }
@@ -178,9 +188,12 @@ async function assertMetadataRegistered(umi, mintAddress, metadataUri) {
     );
   }
 
-  if (trimMetadataString(onChain.updateAuthority) !== config.WALLETS.mintAuthority) {
+  if (
+    trimMetadataString(onChain.updateAuthority) !==
+    config.METADATA_UPDATE_AUTHORITY
+  ) {
     throw new Error(
-      `On-chain metadata update authority is ${onChain.updateAuthority}, expected ${config.WALLETS.mintAuthority}.`
+      `On-chain metadata update authority is ${onChain.updateAuthority}, expected ${config.METADATA_UPDATE_AUTHORITY}.`
     );
   }
 
@@ -209,18 +222,12 @@ async function main() {
   console.log(`RPC                ${rpcUrl}`);
   console.log(`Name               ${config.TOKEN.name}`);
   console.log(`Symbol             ${config.TOKEN.symbol}`);
-  console.log(`Mint               ${state.mintAddress || "not created yet"}`);
-  console.log(`Metadata URI       ${state.metadataUri || "not uploaded yet"}`);
-
-  if (!state.mintAddress) {
-    throw new Error(
-      "No Mainnet mint address is recorded in deployments/mainnet.json. Create the mint first; registration cannot run before it exists."
-    );
-  }
+  console.log(`Mint               ${state.mintAddress}`);
+  console.log(`Metadata URI       ${state.metadataUri || "not recorded"}`);
 
   if (!state.metadataUri) {
     throw new Error(
-      "No Mainnet metadata URI is recorded. Run upload-metadata-mainnet.js first."
+      "No Mainnet metadata URI is recorded in deployments/mainnet.json; refusing to register metadata without one."
     );
   }
 
@@ -290,7 +297,7 @@ async function main() {
   console.log(`\nMetadata account   ${metadataPda} (does not exist yet)`);
   console.log("\nRequired signers:");
   console.log("  Fee payer        pays for the metadata account");
-  console.log("  Mint authority   authorizes the metadata and keeps update authority");
+  console.log("  Update authority authorizes the metadata (not a mint authority)");
 
   const approved = await confirmExecution({
     action: "register the USOL Metaplex metadata"
@@ -362,7 +369,7 @@ async function main() {
       );
     }
 
-    current.status = "mint-and-metadata-verified";
+    current.status = config.DEPLOYMENT.status;
     saveState(current);
 
     console.log("\nMetadata registered and verified on Mainnet.");
@@ -370,8 +377,9 @@ async function main() {
     console.log(`Metadata account   ${metadataPda}`);
     console.log(`Transaction        ${signature}`);
     console.log(config.explorerTransactionUrl(signature));
-    console.log(`\nMint authority     ${config.WALLETS.mintAuthority} (active)`);
-    console.log(`Freeze authority   ${config.WALLETS.freezeAuthority} (active)`);
+    console.log("Mint authority     REVOKED (permanent)");
+    console.log("Freeze authority   REVOKED (permanent)");
+    console.log(`Metadata update authority ${config.METADATA_UPDATE_AUTHORITY}`);
     console.log(
       `\nSupply of ${config.TOKEN.initialSupply.toLocaleString("en-US")} USOL remains in ${config.WALLETS.initialHolder}.`
     );
@@ -384,6 +392,10 @@ async function main() {
 // check and the instruction wiring (program, accounts, signers) without any
 // network request.
 // ---------------------------------------------------------------------------
+
+const FIXTURE_DIR = path.join(__dirname, "test", "fixtures");
+const DEPLOYED_FIXTURE = path.join(FIXTURE_DIR, "mainnet.deployed.json");
+const BLANK_FIXTURE = path.join(FIXTURE_DIR, "mainnet.blank.json");
 
 function selfTest() {
   heading("USOL metadata self-test (offline — nothing is signed or sent)");
@@ -412,12 +424,12 @@ function selfTest() {
       () =>
         config.assertConfirmedWallets({
           ...config.WALLETS,
-          mintAuthority: Keypair.generate().publicKey.toBase58()
+          initialHolder: Keypair.generate().publicKey.toBase58()
         }),
       /differ from the confirmed Mainnet assignments/
     );
 
-    const state = loadState();
+    const state = loadState(DEPLOYED_FIXTURE);
     assert.strictEqual(assertStateWallets(state), state);
     assert.throws(
       () =>
@@ -425,7 +437,7 @@ function selfTest() {
           ...state,
           wallets: {
             ...state.wallets,
-            freezeAuthority: Keypair.generate().publicKey.toBase58()
+            feePayer: Keypair.generate().publicKey.toBase58()
           }
         }),
       /differ from the confirmed assignments/
@@ -443,12 +455,28 @@ function selfTest() {
     );
   });
 
-  check("no mint, metadata URI or metadata account is recorded before launch", () => {
-    const state = loadState();
-    assert.strictEqual(state.mintAddress, null);
-    assert.strictEqual(state.metadataUri, null);
-    assert.strictEqual(state.metadataAccount, null);
-    assert.strictEqual(state.transactions.metadataRegistration, null);
+  check("the deployed record already holds the mint, metadata URI and account", () => {
+    const state = loadState(DEPLOYED_FIXTURE);
+
+    assert.strictEqual(state.mintAddress, config.DEPLOYMENT.mintAddress);
+    assert.strictEqual(state.metadataUri, config.DEPLOYMENT.metadataUri);
+    assert.strictEqual(state.metadataAccount, config.DEPLOYMENT.metadataAccount);
+    assert.strictEqual(
+      state.transactions.metadataRegistration,
+      config.DEPLOYMENT.transactions.metadataRegistration
+    );
+
+    // Registration must refuse this record rather than register a second time.
+    assert.ok(state.metadataAccount, "a second registration must be refused");
+  });
+
+  check("a blank deployment record is refused as damaged, not as a new launch", () => {
+    const blank = loadState(BLANK_FIXTURE);
+    assert.strictEqual(blank.mintAddress, null);
+    assert.throws(
+      () => assertStateDeployment(blank),
+      /does not record a mint/
+    );
   });
 
   const mintAddress = Keypair.generate().publicKey.toBase58();

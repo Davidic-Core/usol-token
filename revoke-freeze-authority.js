@@ -14,11 +14,39 @@ const {
   TOKEN_PROGRAM_ID
 } = require("@solana/spl-token");
 
+// Historical script, kept for the record only. USOL's freeze authority was
+// permanently revoked. Re-running this script must be impossible: it stops as
+// soon as it sees the on-chain authority is already null, before any keypair is
+// loaded or a transaction is built.
+
 const MINT_ADDRESS = "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG";
 const EXPECTED_AUTHORITY = "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT";
 const EXPECTED_FEE_PAYER = "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU";
 
+const REVOCATION_TRANSACTION =
+  "3ZjBcDEMmoYBSwD8y2GyJVkgxkGyWJQpc4aEowXmrn7bQ3upzeHyxpB2hQhNEADBiDotCmngFDMqUxkXp8kR2JJ8";
+
 async function main() {
+  const connection = new Connection(
+    process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
+    "confirmed"
+  );
+
+  const mintBefore = await getMint(
+    connection,
+    new PublicKey(MINT_ADDRESS),
+    "confirmed",
+    TOKEN_PROGRAM_ID
+  );
+
+  if (mintBefore.freezeAuthority === null) {
+    console.log("USOL freeze authority is already permanently revoked.");
+    console.log("Mint:", MINT_ADDRESS);
+    console.log("Revocation transaction:", REVOCATION_TRANSACTION);
+    console.log("Nothing to do. This script will not submit a transaction.");
+    return;
+  }
+
   const dir = process.env.HOME + "/.config/unitedsolana/mainnet/";
 
   const loadKey = name => Keypair.fromSecretKey(
@@ -36,15 +64,7 @@ async function main() {
     throw new Error("Fee-payer wallet mismatch. Stopping.");
   }
 
-  const connection = new Connection(
-    process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
-    "confirmed"
-  );
-
   const mintAddress = new PublicKey(MINT_ADDRESS);
-  const mintBefore = await getMint(
-    connection, mintAddress, "confirmed", TOKEN_PROGRAM_ID
-  );
 
   if (mintBefore.mintAuthority !== null) {
     throw new Error("Mint authority is not revoked. Stopping.");
