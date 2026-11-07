@@ -1,68 +1,307 @@
-# UnitedSolana (USOL)
+# UnitedSOLANA (USOL)
 
-UnitedSolana (USOL) is an SPL token project built on the Solana
+UnitedSOLANA (USOL) is a Classic SPL Token project built on the Solana
 blockchain.
 
 ## Project Status
 
-**Current environment: Solana Devnet**
+**Network: Solana Mainnet — configuration, safety checks and deployment scripts
+prepared.**
 
-The existing USOL token is a development token for testing. It is not
-the Mainnet token and has no guaranteed monetary value.
+The USOL Mainnet mint has **not** been created. There is no Mainnet mint address
+or transaction signature yet: `deployments/mainnet.json` keeps `mintAddress` as
+`null` until a successful creation records the real value.
 
-## Devnet Token Details
+Test-network configuration and scripts have been removed. Solana Mainnet is the
+only network the active project supports.
+
+## Token Details
 
   Property         Value
-  ---------------- ------------------------------------------------
-  Name             UnitedSolana
+  ---------------- -----------------------------------------------
+  Name             UnitedSOLANA
   Symbol           USOL
-  Network          Solana Devnet
-  Token Standard   SPL Token
+  Network          Solana Mainnet
+  Token Standard   Classic SPL Token
   Decimals         9
   Initial Supply   1,000,000,000 USOL
-  Mint Address     `98Y5HKzViGUhZqtqyqjcZZsAPpLf6k8Tx4SM8JxiMHvi`
+  Mint Address     Not created yet
 
-## On-chain Metadata
+Description:
 
-  -----------------------------------------------------------------------------------------------------------
-  Property                            Value
-  ----------------------------------- -----------------------------------------------------------------------
-  Metadata Account                    `jmHyPCfoM45t4Qp47Zm16jMVDrufzb1hBDYYYqwHN6c`
+> UnitedSOLANA (USOL) is a high-speed community and utility token built on the
+> Solana blockchain. Designed to facilitate seamless decentralized trading,
+> liquidity pairing, and ecosystem transaction fees across Solana dApps
 
-  Metadata JSON                       https://gateway.irys.xyz/FgJdN28oHt7eirrPiCycFBdy9kF9EeSmxuPQrBk98FEj
+## Confirmed Wallet Assignments
 
-  Token Logo                          https://gateway.irys.xyz/EJ7Z5xNQeGWgv6iHs9m5yrSLhvbjsjBebhTodBihPZyy
-  -----------------------------------------------------------------------------------------------------------
+  Role               Address
+  ------------------ ----------------------------------------------
+  Fee payer          `FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU`
+  Initial holder     `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
+  Mint authority     `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
+  Freeze authority   `HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT`
 
-## Development Stack
+The fee payer and the token holder are separate wallets and are handled
+separately: FRPP pays transaction fees, account rent and upload costs, while
+HxDW receives the initial supply and keeps the mint and freeze authorities. Both
+authorities stay active — nothing is revoked.
 
--   Node.js
--   JavaScript
--   Solana Web3.js
--   Solana SPL Token
--   Metaplex Token Metadata
--   Irys storage
+## Planned Allocation
+
+The entire 1,000,000,000 USOL supply is minted into the HxDW wallet in one
+transaction. This plan is recorded in `config/mainnet.js` and
+`deployments/mainnet.json`; **no transfer, pool or distribution is performed by
+these scripts**.
+
+  Amount          Purpose
+  --------------- ------------------------------------------------------------
+  300,000,000     Initial liquidity reserve (future USOL/SOL and USOL/USDC pools)
+  250,000,000     Treasury and reserves
+  200,000,000     Ecosystem and community
+  150,000,000     Future distribution
+  100,000,000     Retained allocation
+  --------------- ------------------------------------------------------------
+  1,000,000,000   Total, all held by `HxDW…urT` after launch
+
+## Mainnet Configuration
+
+All values live in one place, `config/mainnet.js`:
+
+-   RPC endpoint: `https://api.mainnet-beta.solana.com`
+-   Mainnet genesis hash: `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d`
+-   Token name, symbol, standard, decimals and initial supply.
+-   The four confirmed wallet assignments and the planned allocation.
+-   The confirmation phrase required before any transaction is sent.
+
+Wallet addresses are validated strictly: base58, exactly 32 bytes, canonical
+re-encoding and on the ed25519 curve — and, beyond validity, they are compared
+exactly with the four confirmed assignments before every run. A malformed or
+substituted address stops every script. `USOL_RPC_URL` may only be the official
+HTTPS Mainnet origin or a local validator for a non-submitting dry run; a local
+endpoint is refused when `--execute` is used, any other network is rejected at
+startup, and every execution additionally checks the cluster's genesis hash.
 
 ## Project Scripts
 
-  -----------------------------------------------------------------------
-  File                                Purpose
-  ----------------------------------- -----------------------------------
-  `deploy.js`                         Creates a Devnet mint and initial
-                                      supply
+  -----------------------------------------------------------------------------
+  File                            Purpose
+  ------------------------------- ---------------------------------------------
+  `deploy-mainnet.js`             Creates the mint, the initial holder's token
+                                  account and the 1B USOL supply in one atomic
+                                  transaction
 
-  `upload-metadata.js`                Uploads the token logo and metadata
+  `upload-metadata-mainnet.js`    Uploads the existing logo and the USOL
+                                  metadata to Irys on Mainnet (requires a
+                                  verified mint)
 
-  `register-metadata.js`              Registers Metaplex metadata on the
-                                      Devnet mint
+  `register-metadata-mainnet.js`  Registers the Metaplex metadata and verifies it
+                                  on-chain
 
-  `transfer-usol.js`                  Transfers USOL between Devnet
-                                      wallets
-  -----------------------------------------------------------------------
+  `config/mainnet.js`             Network, genesis hash, token, wallet and
+                                  allocation settings
+
+  `lib/rpc.js`                    Mainnet genesis check and message-based fee
+                                  calculation
+
+  `lib/preflight.js`              Fail-closed execution gate: endpoint, wallet
+                                  pin, supply, transaction, fee and balance
+
+  `lib/verify.js`                 On-chain mint, authority, supply and token
+                                  account verification
+
+  `lib/launch-transaction.js`     The atomic launch transaction builder
+
+  `lib/lock.js`                   One-run-at-a-time lock around each script
+
+  `lib/state.js`                  Deployment record read/write
+
+  `deployments/mainnet.json`      Record of the actual mint address, token
+                                  account, metadata account and signatures
+  -----------------------------------------------------------------------------
+
+Every script is a **dry run by default**. It validates the configuration, reads
+what it can without changing anything and prints the plan and cost. Adding
+`--execute` — and typing the exact confirmation phrase — is required before
+anything is signed or submitted. `--self-test` runs offline checks that make no
+network request and spend nothing.
+
+## Safety Behaviour
+
+-   **Mainnet only.** The RPC must be exactly
+    `https://api.mainnet-beta.solana.com` — HTTPS, the official origin, no
+    alternative port, path or look-alike host. A local validator
+    (`localhost` / `127.0.0.1`) is accepted for non-submitting dry runs only and
+    is refused outright as soon as `--execute` is requested. Every execution
+    re-checks the genesis hash before building or sending a transaction.
+-   **Fees are calculated, not assumed.** The fee comes from
+    `getFeeForMessage` on the exact transaction message that will be sent. If the
+    RPC cannot price it, the scripts refuse to continue.
+-   **Exact wallet pinning.** The four confirmed assignments are a frozen literal
+    in `config/mainnet.js` and are compared byte for byte with the active
+    configuration and with `deployments/mainnet.json` before any signing step. A
+    valid but different Solana address is still refused.
+-   **Strict wallet validation.** Every configured wallet must also be a
+    canonical, on-curve ed25519 address; the fee payer cannot also be a token
+    authority.
+-   **Authorities are passed separately.** The mint and freeze authorities are
+    independent arguments and are written independently (both are HxDW by
+    assignment).
+-   **Fail closed.** Metadata registration stops on any mismatch: wrong decimals,
+    wrong authorities, wrong supply, unreachable or malformed metadata URI,
+    existing metadata. Only a successful read-back of the on-chain metadata marks
+    the deployment ready.
+-   **Verified mint before upload.** Metadata cannot be uploaded until the
+    recorded mint, both authorities, the full supply and the holder's token
+    account all verify on-chain.
+-   **Everything is checked before anything is signed.** Endpoint, wallets,
+    supply, the compiled transaction, fee and balance are all verified in that
+    order; a failure aborts the run without spending SOL.
+-   **No duplicate or interrupted launches.** A lock file stops concurrent runs.
+    A recorded mint is verified rather than re-created, and a mint keypair whose
+    account already exists on-chain is recovered and verified instead of starting
+    a second mint.
+-   **Token account verification.** After launch the associated token account is
+    checked for the right mint, the right owner (HxDW) and the full
+    1,000,000,000 USOL balance.
+
+## Deployment Order
+
+Run from the repository root after `npm install`:
+
+``` bash
+# 0. Offline checks (no network, no SOL)
+npm run test:mainnet
+
+# 1. Validate configuration, Mainnet genesis and cost (no transaction)
+node deploy-mainnet.js
+
+# 2. Fund FRPP with enough Mainnet SOL, then create the mint
+node deploy-mainnet.js --execute
+
+# 3. Upload the logo and metadata (requires the verified mint)
+node upload-metadata-mainnet.js --execute
+
+# 4. Register the Metaplex metadata and verify it on-chain
+node register-metadata-mainnet.js --execute
+```
+
+Each `--execute` run asks for the confirmation phrase
+(`LAUNCH USOL ON MAINNET`) and refuses to continue without it. After step 2 the
+real mint address is written to `deployments/mainnet.json`; steps 3 and 4 read it
+from there and refuse to run while it is `null`, so no placeholder or invented
+mint address can be used.
+
+There is deliberately no transfer script: USOL transfers and liquidity pools are
+not part of the launch and will be added only when distribution is approved.
+
+## Keypairs
+
+The scripts never generate, print or store a secret for the confirmed wallets.
+They read exported keypair files from outside the repository:
+
+``` text
+~/.config/unitedsolana/mainnet/fee-payer.json    FRPP keypair, mode 600
+~/.config/unitedsolana/mainnet/authority.json    HxDW keypair, mode 600
+```
+
+Override the locations without committing anything:
+
+``` bash
+export USOL_FEE_PAYER_KEYPAIR=/secure/path/fee-payer.json
+export USOL_AUTHORITY_KEYPAIR=/secure/path/authority.json
+```
+
+Each script verifies that the loaded keypair resolves to the confirmed address
+and refuses to continue otherwise.
+
+The new mint account needs its own keypair to sign account creation. The launch
+script generates it at execution time and writes it to
+`~/.config/unitedsolana/mainnet/mint-keypair.json` (mode 600) before sending the
+transaction, so an interrupted attempt can be recovered instead of losing the
+address. That file never enters the repository.
+
+Never commit wallet secret keys, private keys, seed phrases or credentials.
+`.gitignore` already excludes `*keypair*.json`, `fee-payer.json`,
+`authority.json`, `*.key`, `*.pem` and `.env` files. The website never asks for a
+seed phrase or private key.
+
+## Deployment Record
+
+`deployments/mainnet.json` is the single place the real Mainnet values are
+recorded:
+
+-   `mintAddress` — the actual mint, filled in only after creation is confirmed.
+-   `associatedTokenAccount` — the holder's token account.
+-   `imageUri`, `metadataUri` — uploaded logo and metadata.
+-   `metadataAccount`, `transactions.mintCreation`, `transactions.metadataRegistration` — Metaplex account and signatures.
+-   `plannedAllocation` — the recorded distribution plan, not an executed transfer.
+-   `status` — `not-created` → `mint-created` → `mint-verified` →
+    `metadata-uploaded` → `metadata-registration-needs-review` →
+    `mint-and-metadata-verified`. A `mint-created-needs-review` status means the
+    mint exists but failed verification.
+
+## Tests
+
+``` bash
+npm run test:mainnet
+```
+
+Runs the offline self-tests for all three scripts: configuration and allocation,
+strict wallet validation, genesis-hash enforcement, message-based fee
+calculation, launch instruction layout and authorities, signature set, and
+metadata instruction wiring. They make no network request and spend nothing.
+
+## Wallet Interface (Phase 1)
+
+A minimal page for connecting a Phantom wallet. It detects whether Phantom is
+installed, connects through Phantom's browser provider, shows the connected
+public address, and disconnects again. It never asks for a seed phrase or
+private key, and it does not sign transactions or move tokens. This functionality
+is unchanged by the Mainnet conversion.
+
+Start the page (plain Node.js, no extra dependencies):
+
+``` bash
+npm start
+```
+
+Then open http://localhost:3000. The interface is in `web/` and the little
+static server is `web/server.js`.
+
+On mobile, open the page in Phantom's built-in browser. If Phantom already has
+an active session the page reuses it; otherwise a connection request that gets
+no answer times out after 20 seconds instead of leaving the button stuck, and
+the diagnostics line under the buttons shows which provider was detected.
+
+### How the wallet connection works
+
+Phantom injects a provider object into the page (`window.phantom.solana`, also
+exposed as `window.solana` for legacy integrations). The page calls that
+provider's `connect()` method and reads the account's **public address** from
+the result. That address is the only wallet data the page ever receives.
+
+- `connect()` runs only after the visitor presses **Connect**.
+- On page load the page calls `connect({ onlyIfTrusted: true })`, Phantom's
+  documented eager connect: it restores an existing session silently and never
+  shows a prompt for a site that has not been trusted yet.
+- `connect`, `disconnect` and `accountChanged` events keep the display in sync,
+  and only one connection request is ever pending at a time.
+- `connect()` / `disconnect()` are bounded by a 20s / 10s timeout with an
+  explicit error instead of a button that stays on "Connecting…".
+- Phantom never injects its provider into iframes or `http://` pages. When the
+  page is embedded in a frame it says so and offers to open itself in a new tab;
+  on a mobile browser without Phantom it offers Phantom's `browse` deep link.
+
+The page never asks for a seed phrase or private key, never imports or exports a
+keypair, sends nothing to any server, and stores nothing in localStorage,
+sessionStorage or cookies. Future transaction approvals belong to Phantom's own
+signing provider, which would receive the transaction and return a signature.
+
+`web/server.js` needs no environment variables. The optional `PORT` and `HOST`
+overrides are documented in `.env.example`; no file is required.
 
 ## Setup
-
-Clone the repository:
 
 ``` bash
 git clone https://github.com/Snr-Dave/usol-token.git
@@ -70,69 +309,30 @@ cd usol-token
 npm install
 ```
 
-## Development Wallet
+## Security Rules
 
-The Devnet deployment script uses a local keypair stored outside this
-repository:
+-   Never request seed phrases or private keys through the website.
+-   Never commit keypair files or secrets; never hardcode a private key.
+-   Never revoke the mint or freeze authority.
+-   Never change the confirmed wallet assignments.
+-   Never submit a transaction without the owner's explicit approval.
+-   No test-network endpoint, mint address or metadata record is used by the
+    active code.
 
-``` text
-~/.config/unitedsolana/devnet-keypair.json
-```
+## Remaining Steps
 
-Never commit wallet secret keys, private keys, seed phrases, or
-credentials.
-
-## Devnet Operations
-
-Run the Devnet deployment script:
-
-``` bash
-npm run deploy
-```
-
-Upload metadata:
-
-``` bash
-node upload-metadata.js
-```
-
-Register token metadata:
-
-``` bash
-node register-metadata.js
-```
-
-Transfer test USOL:
-
-``` bash
-node transfer-usol.js
-```
-
-These scripts are intended for Devnet. Do not use them for Mainnet
-deployment without a separate review.
-
-## Development Roadmap
-
--   [x] Create Devnet SPL token mint
--   [x] Mint initial supply of 1 billion USOL
--   [x] Upload token logo and metadata
--   [x] Register Metaplex metadata
--   [x] Test USOL transfers
--   [x] Verify USOL in Phantom Testnet Mode
--   [ ] Prepare a separate Mainnet deployment
--   [ ] Deploy the Mainnet USOL mint
--   [ ] Test token discovery in compatible wallets
+-   [x] Prepare the Mainnet token configuration
+-   [x] Remove test-network configuration and scripts
+-   [x] Prepare Mainnet launch, upload and metadata scripts
+-   [x] Enforce Mainnet genesis validation and message-based fees
+-   [x] Offline self-tests for configuration, validation and transaction building
+-   [ ] Owner approval to execute the launch
+-   [ ] Fund FRPP with Mainnet SOL
+-   [ ] Create the USOL Mainnet mint and initial supply
+-   [ ] Upload logo/metadata and register Metaplex metadata
+-   [ ] Record the mint address and signatures
+-   [ ] Verify token discovery in compatible wallets
 -   [ ] Prepare liquidity and distribution
--   [ ] Build the optional USOL website
--   [ ] Implement wallet connection and balance display
-
-## Mainnet Notice
-
-The Mainnet USOL token will require a separate mint address and
-deployment. The Devnet mint cannot be converted into a Mainnet mint.
-
-Mainnet deployment will take place only after configuration, wallet
-security, supply, metadata, and deployment costs have been reviewed.
 
 ## Repository
 

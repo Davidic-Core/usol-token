@@ -1,14 +1,21 @@
 {
+  "name": "usol-token",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UnitedSOLANA (USOL) — Solana Mainnet Classic SPL Token deployment tooling",
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/umi": "^1.6.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.6.0",
     "@metaplex-foundation/umi-uploader-irys": "^1.6.0",
     "@solana/spl-token": "^0.4.15",
-    "@solana/web3.js": "^1.99.0",
-    "sharp": "^0.35.5"
+    "@solana/web3.js": "^1.99.0"
   },
   "scripts": {
-    "deploy": "node deploy.js"
+    "deploy": "node deploy-mainnet.js",
+    "upload:metadata": "node upload-metadata-mainnet.js",
+    "register:metadata": "node register-metadata-mainnet.js",
+    "test:mainnet": "node deploy-mainnet.js --self-test && node upload-metadata-mainnet.js --self-test && node register-metadata-mainnet.js --self-test",
+    "start": "node web/server.js"
   }
 }

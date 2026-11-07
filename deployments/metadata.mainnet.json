@@ -1,0 +1,16 @@
+{
+  "name": "UnitedSOLANA",
+  "symbol": "USOL",
+  "description": "UnitedSOLANA (USOL) is a high-speed community and utility token built on the Solana blockchain. Designed to facilitate seamless decentralized trading, liquidity pairing, and ecosystem transaction fees across Solana dApps",
+  "image": "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo",
+  "attributes": [],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}
