@@ -24,14 +24,25 @@ const CONTENT_TYPES = {
   ".png": "image/png"
 };
 
+const INDEX_PAGE = path.join(WEB_ROOT, "index.html");
+const WALLET_PAGE = path.join(WEB_ROOT, "wallet.html");
+
 const ROUTES = {
-  "/": path.join(WEB_ROOT, "index.html"),
-  "/index.html": path.join(WEB_ROOT, "index.html"),
+  "/": INDEX_PAGE,
+  "/index.html": INDEX_PAGE,
+  "/wallet": WALLET_PAGE,
+  "/wallet.html": WALLET_PAGE,
   "/styles.css": path.join(WEB_ROOT, "styles.css"),
+  "/wallet.css": path.join(WEB_ROOT, "wallet.css"),
   "/app.js": path.join(WEB_ROOT, "app.js"),
+  "/assets/brand/usol-logo.png": path.join(WEB_ROOT, "assets", "brand", "usol-logo.png"),
   "/logo.svg": path.join(REPO_ROOT, "logo.svg"),
   "/logo.png": path.join(REPO_ROOT, "logo.png")
 };
+
+// The preserved Phantom-only page is reachable by direct URL only and must not
+// be indexed while the separately approved multi-wallet phase is pending.
+const NOINDEX_ROUTES = new Set(["/wallet", "/wallet.html"]);
 
 const server = http.createServer((request, response) => {
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -57,15 +68,21 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    response.writeHead(200, {
+    const headers = {
       "content-type": CONTENT_TYPES[path.extname(file)] || "application/octet-stream",
       "cache-control": "no-store",
       "x-content-type-options": "nosniff"
-    });
+    };
+
+    if (NOINDEX_ROUTES.has(pathname)) {
+      headers["x-robots-tag"] = "noindex, nofollow";
+    }
+
+    response.writeHead(200, headers);
     response.end(request.method === "HEAD" ? undefined : contents);
   });
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`UnitedSolana wallet interface listening on http://${HOST}:${PORT}`);
+  console.log(`UnitedSOLANA website listening on http://${HOST}:${PORT}`);
 });

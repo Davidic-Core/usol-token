@@ -3,82 +3,252 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#060b14" />
-    <title>UnitedSolana (USOL) — Connect Phantom Wallet</title>
+    <meta name="theme-color" content="#f8fafc" />
+    <title>UnitedSOLANA (USOL) — Official project website</title>
     <meta
       name="description"
-      content="Connect your Phantom wallet to UnitedSolana (USOL). Share only your public address."
+      content="Official information for UnitedSOLANA (USOL), a Classic SPL Token on Solana Mainnet. Clear project information and transparency, with no wallet required."
     />
-    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" type="image/png" href="/assets/brand/usol-logo.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <section class="card" aria-labelledby="app-title">
-        <div class="brand">
-          <img class="brand__mark" src="/logo.svg" alt="" width="56" height="56" />
-          <div class="brand__text">
-            <p class="brand__eyebrow">Solana · Wallet access</p>
-            <h1 id="app-title">UnitedSolana <span class="brand__symbol">USOL</span></h1>
-          </div>
-        </div>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-        <p class="lede">
-          Connect your Phantom wallet to UnitedSolana. Connecting shares only your
-          public address — nothing is signed and no tokens move.
-        </p>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label="UnitedSOLANA home">
+          <img class="brand__mark" src="/assets/brand/usol-logo.png" alt="" width="44" height="44" />
+          <span class="brand__name">UnitedSOLANA</span>
+          <span class="brand__symbol">USOL</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#overview">Overview</a>
+          <a href="#principles">Principles</a>
+          <a href="#transparency">Transparency</a>
+          <a href="#risk">Risk</a>
+        </nav>
+      </div>
+    </header>
 
-        <div class="wallet">
-          <p class="status" id="wallet-status" data-state="detecting" role="status" aria-live="polite">
-            Checking for Phantom…
-          </p>
-
-          <p class="hint" id="install-hint" hidden>
-            Install the
-            <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer">Phantom extension</a>
-            and reload this page.
-          </p>
-
-          <div class="notice" id="frame-notice" hidden>
-            <p class="notice__text">
-              Phantom does not add its wallet provider to embedded frames, so the
-              wallet cannot connect here. Open this page on its own address and
-              connect there.
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="wrap hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow">Official project website</p>
+            <h1 id="hero-title">United<span>SOLANA</span></h1>
+            <p class="hero__lede">
+              A clear public record for the USOL token on Solana Mainnet.
             </p>
-            <a class="button button--ghost" id="open-tab" href="/" target="_blank" rel="noopener noreferrer">
-              Open in a new tab
-            </a>
+            <p class="hero__body">
+              UnitedSOLANA is an existing Classic SPL Token. This website provides
+              official project information and transparency — no wallet, trading,
+              or investment advice required.
+            </p>
+            <div class="hero__actions">
+              <a class="button" href="#overview">Read the overview</a>
+              <a class="text-link" href="#risk">Risk disclosure</a>
+            </div>
+            <dl class="hero__facts">
+              <div>
+                <dt>Network</dt>
+                <dd>Solana Mainnet</dd>
+              </div>
+              <div>
+                <dt>Standard</dt>
+                <dd>Classic SPL Token</dd>
+              </div>
+              <div>
+                <dt>Symbol</dt>
+                <dd>USOL</dd>
+              </div>
+            </dl>
           </div>
 
-          <a class="button button--phantom" id="open-in-phantom" href="https://phantom.com/" rel="noopener noreferrer" hidden>
-            Open in Phantom's browser
-          </a>
-
-          <button class="button button--primary" id="connect-button" type="button">
-            Connect Phantom Wallet
-          </button>
-
-          <div class="account" id="account" hidden>
-            <p class="account__label">Connected wallet</p>
-            <code class="account__address" id="account-address"></code>
-            <button class="button button--ghost" id="disconnect-button" type="button">
-              Disconnect Wallet
-            </button>
+          <div class="hero__visual" aria-hidden="true">
+            <div class="prism">
+              <span class="prism__grid"></span>
+              <span class="prism__ring prism__ring--outer"></span>
+              <span class="prism__ring prism__ring--inner"></span>
+              <span class="prism__axis"></span>
+              <span class="prism__node prism__node--a"></span>
+              <span class="prism__node prism__node--b"></span>
+              <span class="prism__node prism__node--c"></span>
+              <span class="prism__readout">
+                <span>USOL</span>
+                <span>Mainnet</span>
+              </span>
+            </div>
           </div>
-
-          <p class="message" id="message" data-tone="info" role="status" aria-live="polite" hidden></p>
         </div>
+      </section>
 
-        <p class="diagnostics" id="diagnostics">Checking for a Phantom provider…</p>
+      <section class="section" id="overview" aria-labelledby="overview-title">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="kicker">01 — Overview</p>
+            <h2 id="overview-title">An existing token, documented plainly.</h2>
+          </div>
+          <div class="overview-grid">
+            <div class="prose">
+              <p>
+                UnitedSOLANA (USOL) is a Classic SPL Token deployed on Solana
+                Mainnet. Its on-chain metadata records it as a community and
+                utility token on Solana.
+              </p>
+              <p>
+                This is the project's official website. It publishes information
+                that can be sourced from the project's pinned Mainnet record, and
+                it keeps recorded facts separate from live or third-party data.
+              </p>
+              <p>
+                This first release establishes the public foundation: who the
+                project is, what it does and does not claim, and how its
+                information will be presented. A dedicated token record follows
+                as a separate reviewed release.
+              </p>
+            </div>
+            <aside class="callout" aria-labelledby="limits-title">
+              <h3 id="limits-title">What this site does not do</h3>
+              <ul>
+                <li>It does not sell, swap, or transfer tokens.</li>
+                <li>It does not ask for a seed phrase or private key.</li>
+                <li>It does not publish prices, market data, or return projections.</li>
+                <li>It does not require a wallet connection to read.</li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </section>
 
-        <p class="note">
-          UnitedSolana never asks for your seed phrase or private key. Connecting
-          shares only your public address, which stays in this tab — nothing is
-          saved to your browser or sent to a server.
-        </p>
+      <section class="section" id="principles" aria-labelledby="principles-title">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="kicker">02 — Principles</p>
+            <h2 id="principles-title">Three standards for everything we publish.</h2>
+          </div>
+          <div class="cards">
+            <article class="card">
+              <p class="card__index">01</p>
+              <h3>Speed with clarity</h3>
+              <p>
+                The site is built to load quickly and read clearly on a phone,
+                with no scripts, trackers, or wallet dependencies on public pages.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card__index">02</p>
+              <h3>One unified record</h3>
+              <p>
+                Official information comes from a single pinned Mainnet record.
+                The same fact is not restated differently in different places.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card__index">03</p>
+              <h3>Transparency by default</h3>
+              <p>
+                Recorded facts, live data, and third-party information are
+                labelled separately. Nothing is described as verified when it is not.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="transparency" aria-labelledby="transparency-title">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="kicker">03 — Transparency</p>
+            <h2 id="transparency-title">What we publish, and how we label it.</h2>
+          </div>
+          <div class="ledger">
+            <div class="ledger__item">
+              <h3>Recorded facts</h3>
+              <p>
+                Deployment details come from the project's pinned Mainnet record.
+                They are described as recorded at deployment, not as a fresh live check.
+              </p>
+            </div>
+            <div class="ledger__item">
+              <h3>Verified sources</h3>
+              <p>
+                Links and assets are published only after their destination or
+                provenance is confirmed. No unofficial community links appear on this site.
+              </p>
+            </div>
+            <div class="ledger__item">
+              <h3>No invented metrics</h3>
+              <p>
+                We do not publish prices, market capitalisation, trading volume,
+                liquidity, listings, partnerships, audits, or guaranteed outcomes.
+              </p>
+            </div>
+            <div class="ledger__item">
+              <h3>Labelled live data</h3>
+              <p>
+                Any future market or on-chain data will name its source and
+                last-checked time, and will show a clear failure state rather than stale values.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="risk" aria-labelledby="risk-title">
+        <div class="wrap">
+          <div class="risk-panel">
+            <div class="risk-panel__intro">
+              <p class="kicker">04 — Risk</p>
+              <h2 id="risk-title">Understand the risk before you interact.</h2>
+              <p>
+                UnitedSOLANA is a cryptocurrency token. Its value can fall as well
+                as rise, and no outcome is guaranteed. Nothing on this website is
+                financial, legal, or tax advice.
+              </p>
+            </div>
+            <ul class="risk-list">
+              <li>
+                <strong>Treat crypto as high risk.</strong>
+                Only interact with assets you can afford to lose, and make your own decisions.
+              </li>
+              <li>
+                <strong>Guard your keys.</strong>
+                This website will never ask for your seed phrase or private key.
+                Anyone who does is not acting for UnitedSOLANA.
+              </li>
+              <li>
+                <strong>Check before you act.</strong>
+                This site does not offer trading, swaps, staking, or returns, and
+                does not require a wallet connection.
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
     </main>
 
-    <script src="/app.js" defer></script>
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/brand/usol-logo.png" alt="" width="36" height="36" />
+          <div>
+            <p class="footer-brand__name">UnitedSOLANA</p>
+            <p class="footer-brand__meta">USOL · Solana Mainnet</p>
+          </div>
+        </div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="#overview">Overview</a>
+          <a href="#principles">Principles</a>
+          <a href="#transparency">Transparency</a>
+          <a href="#risk">Risk</a>
+        </nav>
+        <p class="footer-note">
+          © 2026 UnitedSOLANA. Information is provided for transparency and is
+          not investment advice.
+        </p>
+      </div>
+    </footer>
   </body>
 </html>
