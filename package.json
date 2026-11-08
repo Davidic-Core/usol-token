@@ -7,7 +7,6 @@
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/umi": "^1.6.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.6.0",
-    "@metaplex-foundation/umi-uploader-irys": "^1.6.0",
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.99.0"
   },
