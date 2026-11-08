@@ -1,143 +1,110 @@
-# UnitedSOLANA (USOL) Website and Platform Development Skill
+# UnitedSOLANA (USOL) Website Development Operating Manual
 
-## 1. Mission
+## 1. Authority, purpose, and scope
 
-Build the official UnitedSOLANA (USOL) website and progressively develop it into a useful, trustworthy Solana ecosystem platform.
+This manual guides any AI agent assigned to plan or develop the UnitedSOLANA (USOL) website, including Base44 Agent. It is written to be usable without prior conversation history.
 
-The platform must be professional, responsive, secure, transparent, and easy to use, particularly on mobile devices. It must operate independently of the existing token deployment and verification tools.
+The website's purpose is to be the official, clear, accessible source of information about the existing UnitedSOLANA project and, over time, a carefully governed entry point to approved ecosystem experiences. Its long-term vision is a trustworthy, mobile-first website that can grow in independently reviewed phases. Growth is not automatic authorization to add functionality.
 
-Follow the root `AGENT.md` at all times. It takes precedence over this roadmap. If a proposed feature conflicts with the root rules—for example, rules limiting website functionality or prohibiting wallet transactions—do not implement it or weaken those rules. First present the conflict and request explicit approval to revise the governing instructions. A feature appearing in this roadmap is not, by itself, authorization to implement it.
+The root [`AGENT.md`](../AGENT.md) is the highest-authority project instruction. Read it first and follow it at all times. This manual and [`WEBSITE_ARCHITECTURE.md`](WEBSITE_ARCHITECTURE.md) are subordinate. If an instruction, feature, or implementation conflicts with the root rules, stop, describe the conflict, and request direction; do not weaken or silently override the root rules. Do not edit the root `AGENT.md` to make a feature possible.
 
-## 2. Development Philosophy
+This repository is also the home of token verification/deployment records and CLI tooling. The website must remain isolated under `web/`; never change token configuration, deployment history, verification tooling, or retired token utilities to accommodate a website feature.
 
-Build the platform in clearly separated phases. Each phase must:
+## 2. Roles and responsibilities
 
-- Have a defined objective and clearly identified deliverables.
-- Be implemented independently where practical.
-- Include appropriate testing.
-- Be reviewed by the user before the next phase begins.
+### Website development agent
 
-Do not attempt to implement every feature in one operation. Do not assume future features are approved simply because they appear in this roadmap.
+The agent (including Base44 Agent when assigned implementation) is responsible for the phase explicitly authorized by the user: inspect the actual project, explain its understanding and plan, implement only the approved scope, test it, and report results and remaining work. It must preserve existing work, follow project documentation, and stop at every approval gate.
 
-## 3. Phase One — Foundation and Website Design
+### Base44 Agent
 
-Inspect the existing repository and recommend the most suitable website architecture. Design and plan:
+Base44 Agent is the primary agent for website planning, design, and implementation when the user assigns it those tasks. It must follow the same repository instructions and phase approvals as any other developer. It must not assume it can access GitHub files. Before claiming to have read a file, it must either obtain the file contents from the user or use a verified GitHub integration to retrieve the exact repository and branch contents. If neither is available, request the needed documents or access and state what remains unread. Do not present an assumption as repository inspection.
 
-- Official USOL homepage.
-- Responsive navigation.
-- Official USOL logo and branding.
-- Project introduction.
-- Token information section.
-- Buy USOL entry point, only if allowed by root instructions and supported by verified information.
-- Community and documentation links, only when their official destinations are known.
-- Footer containing relevant disclosures.
+### GitHub Copilot
 
-Design requirements:
+GitHub Copilot is the documentation and repository-assistance agent. It can inspect repository files, explain architecture, help refine plans, and make user-authorized documentation or repository changes. It is not the independent primary website builder and must not independently build or rebuild the website. It must not infer authorization to code, install dependencies, or change website files from a request to document or plan. It must respect the user's authorized file scope and publishing instructions.
 
-- Modern, professional appearance.
-- Mobile-first responsiveness.
-- Fast loading.
-- Accessible typography and controls.
-- Consistent visual identity.
-- Clear navigation.
-- Good desktop and mobile experiences.
+### User and GitHub
 
-Do not invent project partnerships, achievements, links, or utilities. Deliver a proposed architecture, page structure, and design plan before implementation. Do not begin implementation until the user approves the phase plan.
+The user owns scope decisions and phase approvals. GitHub is the source-control record for approved documentation and code. A commit, push, merge, or deployment is not implied by approval to implement; obtain explicit authorization for the relevant publishing action. Do not merge to a protected/default branch or deploy unless explicitly approved.
 
-## 4. Phase Two — Official Token Information
+## 3. Mandatory cold-start workflow
 
-Integrate verified USOL information, subject to root `AGENT.md` and user approval. The known canonical information is:
+At the beginning of every new assignment, with no reliance on prior conversation context:
 
-- Name and symbol: UnitedSOLANA (USOL).
-- Network: Solana Mainnet (`mainnet-beta`).
-- Canonical mint: `FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG`.
-- Decimals: 9.
-- Initial supply: 1,000,000,000 USOL.
-- Mint and freeze authorities: revoked (`null`).
-- Metadata account: `4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc`.
-- Metadata URI: `https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY`.
-- Logo URI: `https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo`.
+1. Read the root `AGENT.md` first.
+2. Read `agent/SKILL.md`.
+3. Read `agent/WEBSITE_ARCHITECTURE.md`.
+4. Inspect the repository structure and existing website files under `web/`; read existing files before proposing replacements or moves.
+5. Identify the current phase, its written objectives, accepted deliverables, and any explicit authorization from the user. If the phase or scope is unclear, ask before implementation.
+6. Report your understanding of the instructions, current state, proposed actions, affected files, tests, and risks. State any documents you could not verify access to.
+7. Work only on the phase and files explicitly authorized by the user. A roadmap is not approval for all roadmap items.
+8. Implement and test only that phase, preserving unrelated files and existing tests.
+9. Report completed work, exact changed files, actual test commands and results, outstanding items, and security considerations.
+10. Stop. Wait for explicit user approval before planning or starting the next phase.
 
-Where permitted, retrieve public on-chain information through read-only RPC requests. Link to relevant Solscan pages using verified addresses. Distinguish initial supply from circulating supply and actual wallet holdings. Never invent market prices, market capitalization, liquidity, or trading volume. Do not modify protected token configuration or historical records to accommodate the website.
+At the start of a phase, the user-facing plan must identify objective, in-scope/out-of-scope features, deliverables, files likely to change, test plan, dependencies, risks, and any root-instruction conflict. Do not begin implementation until the user approves that phase. Approval to implement does not authorize commit, push, merge, publication, or deployment unless those actions are explicitly included.
 
-## 5. Phase Three — Solana Wallet Integration
+## 4. Phase planning, implementation, testing, and review
 
-Wallet features are a potential future phase only; implement them only if permitted by root `AGENT.md` and separately approved by the user. If approved, plan and implement non-custodial support, prioritizing:
+Every phase follows this controlled cycle:
 
-- Phantom.
-- Solflare.
-- Backpack.
+- **Plan:** State the phase objective and measurable acceptance criteria. Inspect relevant files and current behavior. Identify scope boundaries, security/privacy implications, dependencies, migration or compatibility concerns, and tests. Ask for approval.
+- **Implement:** After approval, make the smallest coherent changes within authorized paths. Do not silently add features, dependencies, analytics, backend services, or external integrations. Do not overwrite or delete existing files without inspection and explicit scope. Prefer additive changes and preserve existing behavior unless replacement is approved.
+- **Test:** Run suitable checks actually available in the repository. Keep the existing offline test suite intact and independent of live blockchain services. Never use real transactions as tests. Do not claim checks passed unless they were run; distinguish unavailable tests from failures and from manual review.
+- **Review:** Compare results against phase acceptance criteria, inspect the final diff for scope creep, secrets, accidental token/tool changes, accessibility, and regressions. Report files, behavior, test results, limitations, and outstanding tasks.
+- **Approval gate:** Stop and wait for the user to accept the phase and authorize the next one. Do not treat silence, a roadmap entry, or a request for a status report as approval.
 
-Use established Solana wallet standards and maintained libraries. Potential features include connecting and disconnecting a wallet, displaying its public address, displaying USOL and SOL balances, and handling rejected connections, RPC/network errors, and clear wallet status.
+## 5. Phases and scope gates
 
-Never request, collect, or store seed phrases or private keys. Users must retain complete control of their wallets. Never sign transactions using project-owned private keys or add server-side signing. Wallet connections do not authorize transactions.
+Use `agent/WEBSITE_ARCHITECTURE.md` as the detailed proposal and acceptance checklist. The expected sequence is:
 
-## 6. Phase Four — USOL Buy and Sell Integration
+1. **Discovery and architecture/design approval:** Inspect current implementation; agree on mission, branding, page structure, technology and design. Deliver plans or mockups only unless implementation is separately authorized.
+2. **Website foundation and public information:** Build or refine approved responsive public pages and navigation, using verified project information and approved assets. No wallet-dependent feature is implied by this phase.
+3. **Verified token information:** Present only canonical or verifiably sourced facts with clear distinctions between fixed deployment facts and live/external market data. No fabricated prices, liquidity, volume, listings, partnerships, or utility.
+4. **Connection-only multi-wallet support:** Only when separately authorized, provide wallet discovery/selection, connect/disconnect, public address and connection status, and understandable unsupported-wallet/error states. Support Phantom, Solflare, Backpack, and other compatible Solana wallets through Wallet Standard detection where supported. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
+5. **Future wallet or transaction integrations:** A distinct proposal and approval are required for any feature outside the connection-only scope. Root `AGENT.md` controls what is allowed. A user request cannot authorize violating its prohibitions. Never request or expose a private key or seed phrase, use project-owned signing keys, or change token authorities.
+6. **Future ecosystem features, optimization, and launch:** Each feature, external service, and launch/deployment action needs its own defined scope and approval. No payments, staking, rewards, smart contracts, analytics, or production deployment is implied by this phase label.
 
-Swap features are a potential future phase only; implement them only if permitted by root `AGENT.md` and separately approved by the user. If approved, evaluate an established Solana swap provider such as Jupiter, subject to current compatibility and availability. Potential routes include:
+A phase may be split into smaller user-approved increments. Do not combine phases to avoid review gates.
 
-- SOL to USOL and USOL to SOL.
-- USDC to USOL and USOL to USDC, only where a genuine route exists.
+## 6. Website organization and repository safety
 
-Requirements for any approved implementation:
+All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small dependency-free static application (`index.html`, `styles.css`, `app.js`, and `server.js`). Inspect it before proposing changes. The current page connects to Phantom and displays a public address; do not assume it is safe to replace or that it already satisfies multi-wallet requirements.
 
-- Verify a route exists before presenting it.
-- Display available quotes and disclose price impact, fees, and slippage where available.
-- Present transaction details before wallet approval.
-- Require explicit user action and approval inside the user's connected wallet.
-- Handle failed, rejected, and unavailable transactions gracefully.
-- Never fabricate prices, guaranteed execution, trading pairs, or liquidity pools.
-- Never perform real transactions in automated tests.
+Use the architecture document's proposed structure as a target only, not a directive to restructure immediately. Preserve the current entry points and local server behavior until an approved migration plan exists. Keep website code and configuration separate from root token scripts, `config/`, `deployments/`, and verification tests. Avoid unrelated root `package.json` changes; do not add dependencies without an approved justification and security review. Do not move or duplicate the official logo without checking its source and serving path.
 
-## 7. Phase Five — USOL Platform and Ecosystem
+Before editing, inspect the target file and nearby references. Use narrow, reviewable edits; check the diff for overwrites and unrelated changes. Never edit files outside the user's authorized file list. Never put secrets, private keys, seed phrases, access tokens, or credentials in source, documentation, examples, browser storage, logs, or commits. Do not install dependencies unless explicitly approved for that phase.
 
-Potential future areas include community information and announcements, USOL project resources, ecosystem applications and integrations, community participation features, verified project updates, and future USOL utility integrations. These are development possibilities, not claims that such features already exist.
+## 7. Initial wallet scope and security boundaries
 
-Before implementing any feature involving payments, token transfers, staking, rewards, or smart contracts, prepare a separate technical and security proposal and obtain user approval. Do not create additional token contracts or alter the existing USOL deployment. All proposals and implementations remain subject to root `AGENT.md`.
+The planned initial wallet functionality is **connection-only** and requires a separately approved implementation phase. It includes:
 
-## 8. Phase Six — Security, Testing, and Optimization
+- Discovering and selecting Phantom, Solflare, Backpack, and compatible wallets detected through Wallet Standard where supported.
+- Connecting and disconnecting at the user's explicit direction.
+- Showing the connected wallet's public address and detected wallet identity.
+- Indicating connection state and handling missing/unsupported wallets, user rejection, and provider errors.
 
-For approved work, test relevant behavior, including:
+It excludes transaction signing, token transfers, swaps, wallet-based payments, and other transaction submission. Do not add these capabilities under the description of connection support. Do not request, collect, store, or transmit private keys or seed phrases. Do not equate connection or public-address access with permission to transact. Use maintained standards/libraries only after approval and review their trust boundaries and compatibility.
 
-- Mobile and desktop layouts.
-- Navigation and page loading.
-- Wallet connection and disconnection, if approved and permitted.
-- Public balance retrieval and RPC failure handling, if approved and permitted.
-- Swap quote retrieval, transaction review, and wallet approval, if approved and permitted.
-- Error messages, accessibility, performance, and security of external integrations.
+All security, factual accuracy, testing, and read-only tooling restrictions in root `AGENT.md` apply. Keep tests offline where possible; mock wallet providers and never execute a real blockchain transaction in automated tests.
 
-Preserve existing offline repository tests. Keep offline tests independent of live blockchain services. Never use live transactions in automated tests. Review third-party dependencies before introducing them and avoid unnecessary dependencies. Do not claim tests passed unless they were actually run.
+## 8. Documentation and handoff requirements
 
-## 9. Phase Seven — Launch and Deployment
+Keep project documentation useful to a new agent. When a phase is completed, update only documentation files authorized by the user and record:
 
-For a user-approved launch plan, prepare production-build, domain, hosting, HTTPS, website metadata and search-engine information, social-sharing previews, final mobile and desktop checks, and production-deployment instructions. Do not publish or deploy without explicit user approval. Deployment preparation does not authorize deployment.
+- Phase name and status (planned, approved, in progress, complete, blocked).
+- Objective and acceptance criteria, including which were met or not met.
+- Actual files changed and a concise change summary.
+- Commands run and exact outcomes; note tests not run and why.
+- Decisions, assumptions, verified sources, and unresolved questions.
+- Security/privacy review and any external integrations.
+- Outstanding work, known limitations, and the next proposed phase, clearly marked as not authorized.
 
-## 10. Working Method and Approval Gates
+Do not claim project approval, external verification, wallet compatibility, or deployment success without evidence. Keep token facts aligned with root `AGENT.md`; if canonical data seems inconsistent, stop and request clarification rather than correcting token records from the website task.
 
-Work with the user one phase at a time. At the beginning of each phase:
+## 9. Publishing and completion report
 
-1. Explain the objective.
-2. Inspect relevant existing code and repository instructions.
-3. Propose the implementation.
-4. Identify affected files.
-5. Identify dependencies and risks, including conflicts with root `AGENT.md`.
-6. Wait for user approval before implementation.
+After approved implementation, provide a concise but complete report of objective, scope, files changed, behavior delivered, tests actually run and results, outstanding issues, root-rule conflicts, and whether any live blockchain access or transaction occurred. State clearly that no transaction occurred when applicable. Ask before committing/pushing/merging/deploying unless explicitly authorized. When a documentation-only or code commit is authorized, limit it to the exact approved files and branch; do not merge unless separately approved.
 
-After each phase:
-
-1. Summarize files created or modified.
-2. Explain functionality implemented.
-3. Report tests actually performed and their results.
-4. Identify incomplete work.
-5. Report security considerations.
-6. Wait for user approval before proceeding to another phase.
-
-Do not silently expand the scope of a phase. Do not modify protected token deployment files. Do not commit, push, merge, publish, or deploy without explicit user approval.
-
-## 11. Immediate Task
-
-The current task is to create this development instruction document only. Do not begin Phase One implementation. After creating `agent/SKILL.md`, show the complete document, summarize its sections, confirm which file was created or modified, confirm that no blockchain transaction was performed, and stop for user review.
-
----
-
-This skill is subordinate to the repository's root `AGENT.md`; it does not override or relax any token-protection, read-only-tooling, security, testing, or approval requirements.
+This manual does not override or relax root `AGENT.md`. If requirements conflict, root `AGENT.md` wins and the agent must stop and report the conflict.
