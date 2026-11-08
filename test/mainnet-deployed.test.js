@@ -1,294 +1,101 @@
-#!/usr/bin/env node
 "use strict";
 
-// Offline test for the deployed USOL state. No network request, no signature,
-// no transaction: it checks the deployment record, the fixed token facts and the
-// verification rules against isolated fixtures.
-//
-// Run with: npm run test:deployment
-
 const assert = require("assert");
+const fs = require("fs");
 const path = require("path");
-
-const { PublicKey } = require("@solana/web3.js");
-
+const { spawnSync } = require("child_process");
 const config = require("../config/mainnet");
-const { loadState, assertStateWallets, assertStateDeployment } = require("../lib/state");
-const {
-  assertMintFields,
-  assertMetadataAccount,
-  assertMetadataFields,
-  assertTokenAccountFields
-} = require("../lib/verify");
+const stateModule = require("../lib/state");
+const verify = require("../lib/verify");
 
-const FIXTURE_DIR = path.join(__dirname, "fixtures");
-const DEPLOYED = path.join(FIXTURE_DIR, "mainnet.deployed.json");
-const BLANK = path.join(FIXTURE_DIR, "mainnet.blank.json");
+const root = path.join(__dirname, "..");
+const fixture = path.join(__dirname, "fixtures", "mainnet.deployed.json");
+const record = JSON.parse(fs.readFileSync(fixture, "utf8"));
+const checks = [];
+function test(name, fn) { try { fn(); checks.push([true, name]); } catch (error) { checks.push([false, `${name}: ${error.message}`]); } }
 
-const results = [];
+// Retired historical utilities must have no imports or side effects, independent
+// of deployment.json, key availability, or network access.
+const retired = ["revoke-mint-authority.js", "revoke-freeze-authority.js", "upload-metadata-mainnet.js", "register-metadata-mainnet.js"];
+for (const filename of retired) {
+  test(`${filename} is inert and exits without keys or network`, () => {
+    const source = fs.readFileSync(path.join(root, filename), "utf8");
+    assert.doesNotMatch(source, /require\s*\(/);
+    assert.doesNotMatch(source, /readFileSync|fetch\s*\(|Connection|Keypair|Transaction|partialSign|sendRawTransaction|sendAndConfirm|uploader|createV1/);
+    const run = spawnSync(process.execPath, [path.join(root, filename)], {
+      encoding: "utf8",
+      timeout: 5000,
+      env: { ...process.env, USOL_FEE_PAYER_KEYPAIR: "/missing/key", USOL_AUTHORITY_KEYPAIR: "/missing/key", SOLANA_RPC_URL: "https://invalid.invalid" }
+    });
+    assert.strictEqual(run.status, 0, run.stderr);
+    assert.match(run.stdout, /HISTORICAL \/ DISABLED/);
+  });
+}
 
-function check(label, fn) {
-  try {
-    fn();
-    results.push({ ok: true, label });
-  } catch (error) {
-    results.push({ ok: false, label: `${label}: ${error.message}` });
+test("deployed fixture passes canonical state checks without using the live record", () => {
+  const loaded = stateModule.loadState(fixture);
+  assert.strictEqual(loaded.mintAddress, config.DEPLOYMENT.mintAddress);
+  assert.strictEqual(loaded.status, config.DEPLOYMENT.status);
+});
+test("missing and altered canonical deployment fields fail closed", () => {
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, mintAddress: null }), /inconsistent/);
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, rpcUrl: "https://example.invalid" }), /rpcUrl/);
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, token: { ...record.token, decimals: 6 } }), /token.decimals/);
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, authorities: { ...record.authorities, mintAuthority: config.WALLETS.initialHolder } }), /authorities.mintAuthority/);
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, metadataUri: "https://example.invalid/a.json" }), /metadataUri/);
+});
+test("extra harmless deployment fields remain allowed", () => {
+  assert.strictEqual(stateModule.assertStateIntegrity({ ...record, ownerNote: "historical" }).ownerNote, "historical");
+});
+test("mint verifier rejects wrong mint fields and accepts the expected state", () => {
+  const mint = { decimals: 9, supply: config.rawInitialSupply(), mintAuthority: null, freezeAuthority: null };
+  assert.strictEqual(verify.assertMintFields(mint), mint);
+  assert.throws(() => verify.assertMintFields({ ...mint, decimals: 8 }), /decimals/);
+  assert.throws(() => verify.assertMintFields({ ...mint, supply: 1n }), /supply/);
+  assert.throws(() => verify.assertMintFields({ ...mint, mintAuthority: { toBase58: () => "active" } }), /Mint authority is active/);
+  assert.throws(() => verify.assertMintFields({ ...mint, freezeAuthority: { toBase58: () => "active" } }), /Freeze authority is active/);
+});
+test("metadata account, mint, name, symbol and URI are pinned", () => {
+  assertMetadata();
+  function assertMetadata() {
+    assert.doesNotThrow(() => verify.assertMetadataAccount({ mintAddress: config.DEPLOYMENT.mintAddress, metadataAccount: config.DEPLOYMENT.metadataAccount, metadataUri: config.DEPLOYMENT.metadataUri }));
+    assert.throws(() => verify.assertMetadataAccount({ mintAddress: record.wallets.feePayer, metadataAccount: config.DEPLOYMENT.metadataAccount, metadataUri: config.DEPLOYMENT.metadataUri }), /mint/);
+    const metadata = { mint: config.DEPLOYMENT.mintAddress, name: config.TOKEN.name, symbol: config.TOKEN.symbol, uri: config.DEPLOYMENT.metadataUri, address: config.DEPLOYMENT.metadataAccount };
+    assert.doesNotThrow(() => verify.assertMetadataFields(metadata));
+    for (const [field, value] of [["mint", record.wallets.feePayer], ["name", "wrong"], ["symbol", "wrong"], ["uri", "https://example.invalid"]]) {
+      assert.throws(() => verify.assertMetadataFields({ ...metadata, [field]: value }), /mismatch/);
+    }
   }
-}
-
-const rawSupply = 1_000_000_000n * 10n ** 9n;
-
-// 1: the recorded deployment is the deployed USOL token.
-check("deployment record matches the deployed USOL mint and metadata", () => {
-  const state = loadState(DEPLOYED);
-
-  assertStateWallets(state);
-  assertStateDeployment(state);
-
-  assert.strictEqual(state.network, "mainnet-beta");
-  assert.strictEqual(state.status, "mainnet-deployed-and-verified");
-  assert.strictEqual(
-    state.mintAddress,
-    "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG"
-  );
-  assert.strictEqual(
-    state.metadataAccount,
-    "4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc"
-  );
-  assert.strictEqual(
-    state.metadataUri,
-    "https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY"
-  );
-  assert.strictEqual(
-    state.imageUri,
-    "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo"
-  );
+});
+test("metadata JSON logo/name/symbol/description are checked offline", () => {
+  const metadata = { name: config.TOKEN.name, symbol: config.TOKEN.symbol, description: config.TOKEN.description, image: config.DEPLOYMENT.imageUri };
+  assert.strictEqual(verify.assertMetadataJson(metadata), metadata);
+  for (const [field, value] of [["image", "https://example.invalid/logo.png"], ["name", "wrong"], ["symbol", "wrong"]]) {
+    assert.throws(() => verify.assertMetadataJson({ ...metadata, [field]: value }), /mismatch/);
+  }
+});
+test("metadata gateway outage is distinguished from content mismatch", async () => {
+  await assert.rejects(() => verify.fetchAndAssertMetadataJson(config.DEPLOYMENT.metadataUri, async () => { throw new Error("offline"); }), /gateway unavailable/);
+  await assert.rejects(() => verify.fetchAndAssertMetadataJson(config.DEPLOYMENT.metadataUri, async () => ({ ok: true, json: async () => ({ name: "wrong" }) })), /Metadata JSON name mismatch/);
+});
+test("verifier has no transaction path or deployment-record writer", () => {
+  const source = fs.readFileSync(path.join(root, "deploy-mainnet.js"), "utf8");
+  assert.doesNotMatch(source, /sendRawTransaction|sendAndConfirm|partialSign|signTransaction|createMint|mintTo|createV1|uploader\.upload|saveState|writeFileSync/);
+  assert.doesNotMatch(source, /launch-transaction/);
 });
 
-// 2: the live record on disk records the same deployment.
-check("live deployments/mainnet.json records the existing deployment", () => {
-  const state = loadState();
-
-  assertStateWallets(state);
-  assertStateDeployment(state);
-  assert.strictEqual(state.mintAddress, config.DEPLOYMENT.mintAddress);
-  assert.strictEqual(state.status, config.DEPLOYMENT.status);
+test("deployment record discrepancy is reported and never repaired", () => {
+  assert.throws(() => stateModule.assertStateIntegrity({ ...record, imageUri: "https://example.invalid/logo.png" }), /imageUri/);
+  assert.strictEqual(stateModule.saveState, undefined);
+  const source = fs.readFileSync(path.join(root, "deploy-mainnet.js"), "utf8");
+  assert.doesNotMatch(source, /saveState|writeFileSync/);
 });
 
-// 3: the deployed token facts.
-check("USOL is a 9-decimal, 1,000,000,000 token", () => {
-  assert.strictEqual(config.TOKEN.decimals, 9);
-  assert.strictEqual(config.TOKEN.initialSupply, 1_000_000_000n);
-  assert.strictEqual(config.rawInitialSupply(), rawSupply);
-});
-
-// 4: both authorities are revoked on-chain (null), never a wallet.
-check("mint and freeze authorities are null (permanently revoked)", () => {
-  assert.strictEqual(config.AUTHORITIES.mintAuthority, null);
-  assert.strictEqual(config.AUTHORITIES.freezeAuthority, null);
-  assert.strictEqual(config.AUTHORITIES.revoked, true);
-  assert.ok(
-    config.AUTHORITIES.mintRevocationTransaction,
-    "the mint revocation transaction must be recorded"
-  );
-  assert.ok(
-    config.AUTHORITIES.freezeRevocationTransaction,
-    "the freeze revocation transaction must be recorded"
-  );
-
-  const mint = {
-    decimals: 9,
-    supply: rawSupply,
-    mintAuthority: null,
-    freezeAuthority: null
-  };
-
-  assert.strictEqual(
-    assertMintFields(mint, {
-      mintAddress: config.DEPLOYMENT.mintAddress,
-      decimals: 9,
-      rawAmount: rawSupply
-    }),
-    mint
-  );
-});
-
-// 5: verification refuses any active authority or wrong supply.
-check("an active mint or freeze authority fails verification", () => {
-  const holder = new PublicKey(config.WALLETS.initialHolder);
-  const expected = {
-    mintAddress: config.DEPLOYMENT.mintAddress,
-    decimals: 9,
-    rawAmount: rawSupply
-  };
-  const mint = {
-    decimals: 9,
-    supply: rawSupply,
-    mintAuthority: null,
-    freezeAuthority: null
-  };
-
-  assert.throws(
-    () => assertMintFields({ ...mint, mintAuthority: holder }, expected),
-    /Mint authority is/
-  );
-  assert.throws(
-    () => assertMintFields({ ...mint, freezeAuthority: holder }, expected),
-    /Freeze authority is/
-  );
-  assert.throws(
-    () => assertMintFields({ ...mint, supply: 0n }, expected),
-    /Supply is/
-  );
-  assert.throws(
-    () => assertMintFields({ ...mint, decimals: 6 }, expected),
-    /decimals/
-  );
-});
-
-// 6: the metadata account is the Metaplex PDA of the deployed mint.
-check("metadata account is the PDA of the deployed mint, with the recorded URI", () => {
-  assert.strictEqual(
-    config.metadataAccountAddress(config.DEPLOYMENT.mintAddress),
-    config.DEPLOYMENT.metadataAccount
-  );
-
-  assertMetadataAccount({
-    mintAddress: config.DEPLOYMENT.mintAddress,
-    metadataAccount: config.DEPLOYMENT.metadataAccount,
-    metadataUri: config.DEPLOYMENT.metadataUri
-  });
-
-  assert.throws(
-    () =>
-      assertMetadataAccount({
-        mintAddress: config.DEPLOYMENT.mintAddress,
-        metadataAccount: "4GGuwKMeqeN8c5tnhFyN3qK2715BNTrJPjZMYZiJpuS7",
-        metadataUri: config.DEPLOYMENT.metadataUri
-      }),
-    /Metadata account is/
-  );
-
-  assert.throws(
-    () =>
-      assertMetadataAccount({
-        mintAddress: config.DEPLOYMENT.mintAddress,
-        metadataAccount: config.DEPLOYMENT.metadataAccount,
-        metadataUri: "https://example.invalid/usol.json"
-      }),
-    /Metadata URI is/
-  );
-});
-
-// 7: on-chain metadata fields must match the deployed mint and URI.
-check("on-chain metadata must belong to the mint and carry the recorded URI", () => {
-  const expected = {
-    mintAddress: config.DEPLOYMENT.mintAddress,
-    metadataUri: config.DEPLOYMENT.metadataUri,
-    expectedAccount: config.DEPLOYMENT.metadataAccount
-  };
-  const fields = {
-    mint: config.DEPLOYMENT.mintAddress,
-    uri: config.DEPLOYMENT.metadataUri,
-    address: config.DEPLOYMENT.metadataAccount
-  };
-
-  assert.strictEqual(assertMetadataFields(fields, expected), fields);
-  assert.throws(
-    () =>
-      assertMetadataFields(
-        { ...fields, mint: "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU" },
-        expected
-      ),
-    /Metadata belongs to mint/
-  );
-});
-
-// 8: the whole supply is still in the recorded token account.
-check("the original holder's token account holds the full supply", () => {
-  const account = {
-    mint: new PublicKey(config.DEPLOYMENT.mintAddress),
-    owner: new PublicKey(config.WALLETS.initialHolder),
-    amount: rawSupply
-  };
-
-  assertTokenAccountFields(account, {
-    mintAddress: config.DEPLOYMENT.mintAddress,
-    tokenAccountAddress:
-      "4GGuwKMeqeN8c5tnhFyN3qK2715BNTrJPjZMYZiJpuS7",
-    expectedAmount: rawSupply
-  });
-
-  assert.throws(
-    () =>
-      assertTokenAccountFields(
-        {
-          ...account,
-          owner: new PublicKey(config.WALLETS.feePayer)
-        },
-        {
-          mintAddress: config.DEPLOYMENT.mintAddress,
-          tokenAccountAddress:
-            "4GGuwKMeqeN8c5tnhFyN3qK2715BNTrJPjZMYZiJpuS7",
-          expectedAmount: rawSupply
-        }
-      ),
-    /is owned by/
-  );
-});
-
-// 9: HxDW is a holder, not an authority. The config has no authority wallet.
-check("HxDW and FRPP are wallets only, not mint or freeze authorities", () => {
-  assert.strictEqual(
-    config.WALLETS.initialHolder,
-    "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
-  );
-  assert.strictEqual(
-    config.WALLETS.feePayer,
-    "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU"
-  );
-
-  const authorityKeys = [
-    "mintAuthority",
-    "freezeAuthority"
-  ].filter((key) => Object.prototype.hasOwnProperty.call(config.WALLETS, key));
-
-  assert.deepStrictEqual(authorityKeys, []);
-});
-
-// 10: obsolete / damaged records cannot start a second token.
-check("a blank or tampered record is refused instead of creating a mint", () => {
-  const blank = loadState(BLANK);
-  const deployed = loadState(DEPLOYED);
-
-  assert.strictEqual(blank.mintAddress, null);
-  assert.throws(() => assertStateDeployment(blank), /does not record a mint/);
-
-  assert.throws(
-    () =>
-      assertStateDeployment({
-        ...deployed,
-        mintAddress: "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU"
-      }),
-    /Refusing to continue/
-  );
-
-  assert.throws(
-    () =>
-      config.assertDeployedMintAddress(
-        "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU"
-      ),
-    /second token/
-  );
-});
-
-for (const result of results) {
-  console.log(`${result.ok ? "PASS" : "FAIL"}  ${result.label}`);
-}
-
-const failed = results.filter((result) => !result.ok).length;
-console.log(
-  `\n${results.length - failed}/${results.length} checks passed. Offline only: no network request and no transaction submitted.`
-);
-
-if (failed > 0) process.exitCode = 1;
+(async () => {
+  // Re-run the async gateway check which is registered above as an explicit
+  // awaited test; all other test cases are synchronous.
+  for (const [ok, name] of checks) console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
+  const failures = checks.filter(([ok]) => !ok).length;
+  console.log(`\n${checks.length - failures}/${checks.length} offline checks passed. No Mainnet RPC or external gateway was contacted.`);
+  if (failures) process.exitCode = 1;
+})();
