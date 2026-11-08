@@ -1,0 +1,64 @@
+{
+  "network": "mainnet-beta",
+  "rpcUrl": "https://api.mainnet-beta.solana.com",
+  "genesisHash": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+  "token": {
+    "name": "UnitedSOLANA",
+    "symbol": "USOL",
+    "standard": "Classic SPL Token",
+    "decimals": 9,
+    "initialSupply": "1000000000"
+  },
+  "wallets": {
+    "feePayer": "FRPPdHqxShm3sGAW4cXvdWRdQa5NHfRUmSUuhaC4e5TU",
+    "initialHolder": "HxDWxdDWoMUErQ3Y3JdiVd9xi23UU9V8fjvbqwkEaurT"
+  },
+  "status": "mainnet-deployed-and-verified",
+  "mintAddress": "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG",
+  "associatedTokenAccount": "4GGuwKMeqeN8c5tnhFyN3qK2715BNTrJPjZMYZiJpuS7",
+  "imageUri": "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo",
+  "metadataUri": "https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY",
+  "metadataAccount": "4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc",
+  "authorities": {
+    "mintAuthority": null,
+    "freezeAuthority": null,
+    "revoked": true,
+    "mintRevocationTransaction": "3N5WpNkkJQ3uSEtGBBxU7z5mkcesJnZaVyShb1mMhRPYWsVNXdYYYE8YbZieSZkreMfkReFuRY4aQqMvYz26dCAe",
+    "freezeRevocationTransaction": "3ZjBcDEMmoYBSwD8y2GyJVkgxkGyWJQpc4aEowXmrn7bQ3upzeHyxpB2hQhNEADBiDotCmngFDMqUxkXp8kR2JJ8"
+  },
+  "transactions": {
+    "mintCreation": "3N1UJdVAC8AGiCe9mJetrZHzBNW3aZTnAgfqtjoDMQey91jphBri5SGXsFBzt1cdnQAUtaA54Sv9k211EiJoHdUY",
+    "metadataRegistration": "2LKc5pLimSyiAQhCsUYpYNvjySjJZ8asmHo8qtopf3J6wvgqF2Abx1oYVBLK2gUT3niS4CKyvDoXJShuoJuEuD8C",
+    "mintAuthorityRevocation": "3N5WpNkkJQ3uSEtGBBxU7z5mkcesJnZaVyShb1mMhRPYWsVNXdYYYE8YbZieSZkreMfkReFuRY4aQqMvYz26dCAe",
+    "freezeAuthorityRevocation": "3ZjBcDEMmoYBSwD8y2GyJVkgxkGyWJQpc4aEowXmrn7bQ3upzeHyxpB2hQhNEADBiDotCmngFDMqUxkXp8kR2JJ8"
+  },
+  "plannedAllocation": [
+    {
+      "key": "liquidityReserve",
+      "label": "Initial liquidity reserve (future USOL/SOL and USOL/USDC pools)",
+      "amount": "300000000"
+    },
+    {
+      "key": "treasury",
+      "label": "Treasury and reserves",
+      "amount": "250000000"
+    },
+    {
+      "key": "ecosystem",
+      "label": "Ecosystem and community",
+      "amount": "200000000"
+    },
+    {
+      "key": "distribution",
+      "label": "Future distribution",
+      "amount": "150000000"
+    },
+    {
+      "key": "retained",
+      "label": "Retained allocation",
+      "amount": "100000000"
+    }
+  ],
+  "recovery": null,
+  "updatedAt": "2026-11-07T00:00:00.000Z"
+}
