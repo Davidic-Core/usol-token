@@ -34,7 +34,7 @@ At the beginning of every new assignment, with no reliance on prior conversation
 
 1. Read the root `AGENT.md` first.
 2. Read `agent/SKILL.md`.
-3. Read `agent/WEBSITE_ARCHITECTURE.md`.
+3. Read `agent/WEBSITE_ARCHITECTURE.md`, then `agent/HANDOVER.md` for the current phase status, verified commit, and test results.
 4. Inspect the repository structure and existing website files under `web/`; read existing files before proposing replacements or moves.
 5. Identify the current phase, its written objectives, accepted deliverables, and any explicit authorization from the user. If the phase or scope is unclear, ask before implementation.
 6. Report your understanding of the instructions, current state, proposed actions, affected files, tests, and risks. State any documents you could not verify access to.
@@ -70,7 +70,7 @@ A phase may be split into smaller user-approved increments. Do not combine phase
 
 ## 6. Website organization and repository safety
 
-All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small dependency-free static application (`index.html`, `styles.css`, `app.js`, and `server.js`). Inspect it before proposing changes. The current page connects to Phantom and displays a public address; do not assume it is safe to replace or that it already satisfies multi-wallet requirements.
+All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) and a preserved Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `app.js`). See `agent/HANDOVER.md` for the current phase status and verified commit. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page is unlinked and `noindex`; do not assume either is safe to replace or that the wallet page already satisfies multi-wallet requirements.
 
 Use the architecture document's proposed structure as a target only, not a directive to restructure immediately. Preserve the current entry points and local server behavior until an approved migration plan exists. Keep website code and configuration separate from root token scripts, `config/`, `deployments/`, and verification tests. Avoid unrelated root `package.json` changes; do not add dependencies without an approved justification and security review. Do not move or duplicate the official logo without checking its source and serving path.
 

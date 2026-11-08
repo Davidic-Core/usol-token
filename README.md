@@ -43,7 +43,9 @@ No metadata correction or transaction workflow is supported here. Do not restore
 
 ## Website scope
 
-`web/` remains a minimal static Phantom connect page. It does not display balances, sign, transfer, trade, or swap tokens. This repository does not implement a trading website or wallet transaction functionality.
+`web/` is a dependency-free static website. The public homepage (`/`) presents the approved Phase One project information; the preserved Phantom connect page remains at `/wallet`, unlinked and `noindex`, and does not display balances, sign, transfer, trade, or swap tokens. This repository does not implement a trading website or wallet transaction functionality.
+
+Website tests: `node --test web/tests/server.test.js`. Current phase status, verification results, and the next authorized task are recorded in [`agent/HANDOVER.md`](agent/HANDOVER.md).
 
 ## Security
 
