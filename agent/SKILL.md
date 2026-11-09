@@ -34,7 +34,7 @@ At the beginning of every new assignment, with no reliance on prior conversation
 
 1. Read the root `AGENT.md` first.
 2. Read `agent/SKILL.md`.
-3. Read `agent/WEBSITE_ARCHITECTURE.md`, then `agent/HANDOVER.md` for the current phase status, verified commit, and test results.
+3. Read `agent/WEBSITE_ARCHITECTURE.md`, then `agent/HANDOVER.md`. The handover is the authoritative record of the current phase status, verified commit and branch, actual test results, known limitations, and the exact point where work resumes. Read it before proposing any work; if it conflicts with the root rules or `SKILL.md`, those documents win.
 4. Inspect the repository structure and existing website files under `web/`; read existing files before proposing replacements or moves.
 5. Identify the current phase, its written objectives, accepted deliverables, and any explicit authorization from the user. If the phase or scope is unclear, ask before implementation.
 6. Report your understanding of the instructions, current state, proposed actions, affected files, tests, and risks. State any documents you could not verify access to.
@@ -57,20 +57,23 @@ Every phase follows this controlled cycle:
 
 ## 5. Phases and scope gates
 
-Use `agent/WEBSITE_ARCHITECTURE.md` as the detailed proposal and acceptance checklist. The expected sequence is:
+Use `agent/WEBSITE_ARCHITECTURE.md` §18 as the detailed proposal and acceptance checklist. Phase numbers below match that section; do not renumber them in new documents.
 
-1. **Discovery and architecture/design approval:** Inspect current implementation; agree on mission, branding, page structure, technology and design. Deliver plans or mockups only unless implementation is separately authorized.
-2. **Website foundation and public information:** Build or refine approved responsive public pages and navigation, using verified project information and approved assets. No wallet-dependent feature is implied by this phase.
-3. **Verified token information:** Present only canonical or verifiably sourced facts with clear distinctions between fixed deployment facts and live/external market data. No fabricated prices, liquidity, volume, listings, partnerships, or utility.
-4. **Connection-only multi-wallet support:** Only when separately authorized, provide wallet discovery/selection, connect/disconnect, public address and connection status, and understandable unsupported-wallet/error states. Support Phantom, Solflare, Backpack, and other compatible Solana wallets through Wallet Standard detection where supported. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
-5. **Future wallet or transaction integrations:** A distinct proposal and approval are required for any feature outside the connection-only scope. Root `AGENT.md` controls what is allowed. A user request cannot authorize violating its prohibitions. Never request or expose a private key or seed phrase, use project-owned signing keys, or change token authorities.
-6. **Future ecosystem features, optimization, and launch:** Each feature, external service, and launch/deployment action needs its own defined scope and approval. No payments, staking, rewards, smart contracts, analytics, or production deployment is implied by this phase label.
+Status of this sequence: Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is planned, not started, and not authorized. See `agent/HANDOVER.md` for the verified state.
+
+- **Phase 0 — Discovery and architecture/design:** Inspect current implementation; agree on mission, branding, page structure, technology and design. Deliver plans or mockups only unless implementation is separately authorized.
+- **Phase 1 — Public website foundation:** Build or refine approved responsive public pages and navigation, using verified project information and approved assets. No wallet-dependent feature is implied by this phase.
+- **Phase 2 — Verified token information:** Present only canonical or verifiably sourced facts with clear distinctions between fixed deployment facts and live/external market data. No fabricated prices, liquidity, volume, listings, partnerships, or utility.
+- **Phase 3 — Connection-only multi-wallet support:** Only when separately authorized, provide wallet discovery/selection, connect/disconnect, public address and connection status, and understandable unsupported-wallet/error states. Support Phantom, Solflare, Backpack, and other compatible Solana wallets through Wallet Standard detection where supported. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
+- **Phase 4 — Future integrations, each separately proposed:** A distinct proposal and approval are required for any feature outside the connection-only scope. Root `AGENT.md` controls what is allowed. A user request cannot authorize violating its prohibitions. Never request or expose a private key or seed phrase, use project-owned signing keys, or change token authorities.
+- **Phase 5 — Ecosystem content and expansion:** Verify and source every resource or update; no implied partnerships, fabricated utilities, or unapproved data collection.
+- **Phase 6 — Optimization and launch readiness:** Each feature, external service, and launch/deployment action needs its own defined scope and approval. No payments, staking, rewards, smart contracts, analytics, or production deployment is implied by this phase label.
 
 A phase may be split into smaller user-approved increments. Do not combine phases to avoid review gates.
 
 ## 6. Website organization and repository safety
 
-All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) and a preserved Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `app.js`). See `agent/HANDOVER.md` for the current phase status and verified commit. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page is unlinked and `noindex`; do not assume either is safe to replace or that the wallet page already satisfies multi-wallet requirements.
+All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) with the Phase Two token information section and two progressive-enhancement scripts (`nav.js` for the mobile disclosure menu, `token.js` for the mint copy control), plus a preserved Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `app.js`). See `agent/HANDOVER.md` for the current phase status, verified commit, test results, and next starting point. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page is unlinked and `noindex`; do not assume either is safe to replace or that the wallet page already satisfies multi-wallet requirements.
 
 Use the architecture document's proposed structure as a target only, not a directive to restructure immediately. Preserve the current entry points and local server behavior until an approved migration plan exists. Keep website code and configuration separate from root token scripts, `config/`, `deployments/`, and verification tests. Avoid unrelated root `package.json` changes; do not add dependencies without an approved justification and security review. Do not move or duplicate the official logo without checking its source and serving path.
 
