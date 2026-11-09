@@ -6,7 +6,7 @@ This document records the inspected starting point and a phased architecture pro
 
 The root [`AGENT.md`](../AGENT.md) is the highest-authority instruction. Read it before this document. The operating workflow is in [`SKILL.md`](SKILL.md). If this proposal conflicts with root rules, root rules win; stop and document the conflict. Do not modify root `AGENT.md` to bypass a restriction.
 
-**Inspected repository state:** `web/` currently contains `index.html`, `styles.css`, `app.js`, and `server.js`. The current site is a minimal, dependency-free static Phantom connection page. It can connect/disconnect, display a public address, and provide mobile/embedded-browser guidance. Its server serves an explicit allowlist of paths and also serves the repository-root logos. The current website is not a React application and the root `package.json` is for token verification tooling, not a website framework. The architecture below is a recommended direction; preserve this existing implementation until a phase is approved.
+**Inspected repository state (Phase 0 snapshot, kept as the historical starting point):** at inspection time `web/` contained `index.html`, `styles.css`, `app.js`, and `server.js`. Phases 1 and 2 have since been completed; the current files, verified commit, test results, and next starting point are recorded in [`HANDOVER.md`](HANDOVER.md), which supersedes this snapshot for current-state questions. At inspection the site was a minimal, dependency-free static Phantom connection page: it could connect/disconnect, display a public address, and provide mobile/embedded-browser guidance, and its server served an explicit allowlist of paths plus the repository-root logos. The website is still not a React application, and the root `package.json` remains token verification tooling rather than a website framework. The architecture below is a recommended direction; preserve this existing implementation until a phase is approved.
 
 ## 2. Mission and long-term vision
 
@@ -16,13 +16,17 @@ The long-term vision is a well-maintained project website that can expand gradua
 
 ## 3. Existing structure and constraints
 
-### Current files
+### Files at the Phase 0 inspection (historical)
 
-- `web/index.html` — single HTML page describing Phantom-only wallet connection.
-- `web/styles.css` — dark responsive styles with gradient accents and focus-visible styling.
+The list below records what existed before implementation began. For the current file list after Phases 1 and 2, read [`HANDOVER.md`](HANDOVER.md).
+
+- `web/index.html` — at inspection: a single HTML page describing Phantom-only wallet connection; now the public homepage including the Phase Two token information section, with the wallet page moved to `web/wallet.html`.
+- `web/styles.css` — at inspection: dark responsive styles with gradient accents and focus-visible styling; now the light visual system used by the public homepage.
 - `web/app.js` — browser-side Phantom provider detection and connection/disconnection; it handles mobile and embedded contexts and does not sign, transfer, or make page network requests.
 - `web/server.js` — dependency-free Node HTTP static server with GET/HEAD-only handling and explicit routes. It serves website files and root `logo.svg` / `logo.png`.
 - Root `logo.svg` and `logo.png` are existing brand asset candidates; verify the files, quality, provenance, and official status before relying on or copying them.
+
+Added during implementation: `web/wallet.html` and `web/wallet.css` (the preserved Phantom page split out of `index.html`), `web/nav.js` (mobile navigation disclosure), `web/token.js` (mint copy control), and `web/assets/brand/usol-logo.png` (served logo with its digest pinned in the tests). Both scripts are progressive enhancement only: no network, wallet, or transaction code.
 
 ### Repository constraints
 
