@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#060b14" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>UnitedSolana (USOL) — Connect Phantom Wallet</title>
+    <title>UnitedSOLANA (USOL) — Connect Phantom Wallet</title>
     <meta
       name="description"
-      content="Connect your Phantom wallet to UnitedSolana (USOL). Share only your public address."
+      content="Connect your Phantom wallet to UnitedSOLANA (USOL). Connection is optional and shares only your public address."
     />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/wallet.css" />
@@ -20,12 +20,12 @@
           <img class="brand__mark" src="/logo.svg" alt="" width="56" height="56" />
           <div class="brand__text">
             <p class="brand__eyebrow">Solana · Wallet access</p>
-            <h1 id="app-title">UnitedSolana <span class="brand__symbol">USOL</span></h1>
+            <h1 id="app-title">UnitedSOLANA <span class="brand__symbol">USOL</span></h1>
           </div>
         </div>
 
         <p class="lede">
-          Connect your Phantom wallet to UnitedSolana. Connecting shares only your
+          Connect your Phantom wallet to UnitedSOLANA. Connecting shares only your
           public address — nothing is signed and no tokens move.
         </p>
 
@@ -33,6 +33,13 @@
           <p class="status" id="wallet-status" data-state="detecting" role="status" aria-live="polite">
             Checking for Phantom…
           </p>
+
+          <noscript>
+            <p class="noscript-note">
+              Connecting Phantom needs JavaScript. Nothing is collected while it
+              is off, and the public project site remains available.
+            </p>
+          </noscript>
 
           <p class="hint" id="install-hint" hidden>
             Install the
@@ -59,7 +66,7 @@
             Connect Phantom Wallet
           </button>
 
-          <div class="account" id="account" hidden>
+          <div class="account" id="account" tabindex="-1" hidden>
             <p class="account__label">Connected wallet</p>
             <code class="account__address" id="account-address"></code>
             <button class="button button--ghost" id="disconnect-button" type="button">
@@ -73,13 +80,14 @@
         <p class="diagnostics" id="diagnostics">Checking for a Phantom provider…</p>
 
         <p class="note">
-          UnitedSolana never asks for your seed phrase or private key. Connecting
+          UnitedSOLANA never asks for your seed phrase or private key. Connecting
           shares only your public address, which stays in this tab — nothing is
           saved to your browser or sent to a server.
         </p>
       </section>
     </main>
 
+    <script src="/wallet-core.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

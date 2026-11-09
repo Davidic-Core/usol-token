@@ -82,11 +82,11 @@ A browser-compatible extension choice such as `token.ts|js` means select one app
 - Token information displaying canonical, verified facts and a copyable mint only if approved and tested for accessibility/usability.
 - Official logo/brand usage after verifying the existing asset and appropriate variants.
 - Known official links only after their destinations are confirmed.
-- A clearly labeled wallet connection entry point only when the separate connection phase is approved. That feature remains strictly connection-only as specified below.
+- A clearly labeled wallet connection entry point only after the approved scope permits linking it from public pages; the current `/wallet` page stays unlinked and `noindex`. That feature remains strictly connection-only as specified below.
 
 ### Future features requiring separate proposal and approval
 
-- Multi-wallet connection experience: wallet discovery and selection; connect/disconnect; connected public address; wallet identity and connection status; unsupported-wallet and connection-error states. Supported targets: Phantom, Solflare, Backpack, and other compatible Solana wallets detected using Wallet Standard where supported.
+- Multi-wallet expansion (deferred): Solflare, Backpack, and other Wallet Standard wallets, plus wallet discovery and selection across them. The approved Phase 3 increment is **Phantom-only** and does not include these.
 - Dynamic on-chain information, any external market-data integration, ecosystem pages, announcements, or additional content sources.
 - Wallet balances, token holdings, transaction signing, transfers, swaps, payments, staking, rewards, smart-contract interactions, accounts, chat, analytics, or other integrations. These are not part of the initial wallet implementation. Each requires distinct approval, a technical/security plan, and review against root `AGENT.md`. Some may be prohibited or require further policy changes; no feature may bypass root rules.
 - React/TypeScript migration, backend services, database, or content-management system.
@@ -159,18 +159,19 @@ Root `AGENT.md` identifies the recorded canonical facts:
 
 Treat this as the project's pinned record, not proof of a new live check. If displaying live on-chain or third-party data is later approved, identify the source, timestamp/last-checked time, failure/staleness behavior, and whether the value is estimated. Never invent token price, market cap, trading volume, liquidity, listings, partnerships, audits, or utility. Do not promise returns. Use risk disclosures suitable to the displayed information.
 
-## 12. Future wallet integration points — connection only
+## 12. Approved wallet integration — Phantom connection only
 
-Wallet connectivity is a planned, separately approved feature. When authorized, architecture should support:
+Phase 3 is approved as a **Phantom-only, connection-only** increment. It provides:
 
-- Wallet discovery and selection for Phantom, Solflare, Backpack, and compatible Wallet Standard wallets where supported.
-- Clear wallet identity and detected/unsupported states.
-- User-initiated connect and disconnect; connection status and connected public address.
-- Provider errors including cancellation/rejection, unavailable provider, unsupported wallet, and disconnect/account-change events, with accessible recovery guidance.
-- Mobile and in-app-browser behavior, including browser/provider limitations.
-- A provider abstraction or maintained compatibility library, selected after review; do not assume every wallet exposes identical APIs.
+- Phantom detection through its documented provider (`window.phantom.solana`, with legacy `window.solana` as documented), including late provider injection in mobile in-app browsers.
+- Clear detected, missing, embedded-frame, and unsupported states.
+- User-initiated connect and disconnect; connection status and a validated public address.
+- Provider errors including rejection, overlapping approval, unauthorized, network, timeout, and account-change events, with accessible recovery guidance.
+- Mobile and in-app-browser guidance, including Phantom's documented Browse deep link.
 
-The initial implementation ends at connection state and public-address display. It must not request signatures, sign messages, submit transactions, transfer tokens, execute swaps, or make wallet-based payments. Do not display token/SOL balances in this initial scope. Connecting is not consent to transact. Do not persist or send the address unless a separately approved privacy design requires it; default to keeping connection data in page memory and explain any provider-managed trusted-site behavior accurately. Never request secrets.
+Solflare, Backpack, Wallet Standard discovery, wallet selection across multiple wallets, and any provider abstraction or compatibility library are **deferred** to a future, separately approved increment.
+
+The implementation ends at connection state and public-address display. It must not request signatures, sign messages, submit transactions, transfer tokens, execute swaps, or make wallet-based payments. Do not display token/SOL balances in this initial scope. Connecting is not consent to transact. Do not persist or send the address unless a separately approved privacy design requires it; default to keeping connection data in page memory and explain any provider-managed trusted-site behavior accurately. Never request secrets.
 
 ## 13. Future swap integration points
 
@@ -202,7 +203,7 @@ Test plan by phase may include:
 - Existing `npm run test:offline` regression test; preserve its offline nature.
 - HTML/CSS/JavaScript checks and static server route/method behavior for approved site changes.
 - Responsive viewport checks, overflow, link validity, focus, contrast, keyboard navigation, and manual accessibility checks.
-- Wallet feature tests with mocked provider/Wallet Standard discovery: supported wallet selection, connect/disconnect, address/status rendering, missing/unsupported wallets, rejection, errors, account changes, and mobile/provider-unavailable states.
+- Wallet feature tests with a mocked Phantom provider: connect/disconnect, address validation and status rendering, missing provider, embedded frame, rejection, timeout, documented provider errors, account changes, and mobile/provider-unavailable states. Solflare, Backpack, and Wallet Standard discovery are not part of the approved Phase 3 test scope.
 - Confirm wallet tests do not invoke signing, transaction submission, transfers, swaps, or balance retrieval.
 - Security and dependency review for any approved integration.
 
@@ -234,11 +235,11 @@ Each phase requires its own user approval before implementation, followed by tes
 
 **Acceptance:** mint/network/decimals/supply/authority labels match root records; supply is not mislabeled as circulating; recorded facts are not presented as a fresh live check; all external information has source/checked-time labels where applicable; no fabricated market/project claims; offline tests pass.
 
-### Phase 3 — Connection-only multi-wallet support
+### Phase 3 — Connection-only Phantom support (approved)
 
-**Deliverables:** wallet discovery and selection; Phantom, Solflare, Backpack support; Wallet Standard detection for other compatible wallets where supported; connect/disconnect; detected wallet identity, public address, and connection status; unsupported-wallet and connection-error handling; mobile/provider-unavailable guidance.
+**Deliverables:** Phantom detection through its documented provider (`window.phantom.solana`, legacy `window.solana` where documented); connect/disconnect; validated public address and connection status; missing-provider, embedded-frame, rejection, timeout, and documented provider-error handling; mobile/in-app-browser guidance with Phantom's Browse deep link; offline tests for the pure helpers and connection-only invariants.
 
-**Acceptance:** supported wallets are detected through reviewed maintained interfaces; selection and connect/disconnect are user initiated and work with mocked providers; public address and status are presented accessibly; rejection, missing provider, unsupported wallet, disconnect, and relevant provider changes are handled; page remains usable without a wallet; privacy behavior is documented and minimal; no signing, transaction request, token transfer, swap, payment, balance display, or transaction submission code is introduced; no real transactions are tested.
+**Acceptance:** Phantom is detected through its documented provider and connect/disconnect are user initiated and work with a mocked provider; the public address is validated before display and status is presented accessibly; rejection, missing provider, embedded frame, timeout, disconnect, and account changes are handled; the page remains usable without a wallet; privacy behavior is documented and minimal; no signing, message signing, transaction request, token transfer, swap, payment, balance display, or transaction submission code is introduced; no real transactions are tested. Solflare, Backpack, and Wallet Standard support are explicitly **out of scope** and deferred.
 
 ### Phase 4 — Future integrations, each separately proposed
 
@@ -267,7 +268,7 @@ After an approved phase, document status, completed criteria, changed files, act
 ## 20. Explicit scope summary
 
 - **Initial planned public site:** responsive, factual public project pages and navigation; no invented claims.
-- **Initial wallet phase, only after approval:** multi-wallet discovery/selection, connection/disconnection, detected identity, public address/status, unsupported-wallet and error handling. Connection-only.
+- **Approved wallet phase (Phase 3):** Phantom-only detection, connection/disconnection, validated public address/status, and missing-provider/embedded/error handling. Connection-only. Solflare, Backpack, Wallet Standard, and multi-wallet selection are deferred.
 - **Future, separately approved:** broader pages, ecosystem expansion, and any additional data or integrations.
 - **Not part of initial scope:** signing, transfers, swaps, wallet payments, balances, or transaction submission.
 - **Never permitted by root rules:** creating another USOL mint, changing authorities, exposing/requesting secrets, modifying protected token/deployment tooling to enable site features, or fabricating project/market claims.

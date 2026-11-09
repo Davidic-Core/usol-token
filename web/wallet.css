@@ -29,7 +29,11 @@ body {
 
 body {
   margin: 0;
-  padding: clamp(1.25rem, 6vw, 3rem) 1rem;
+  padding:
+    max(clamp(1.25rem, 6vw, 3rem), env(safe-area-inset-top))
+    max(1rem, env(safe-area-inset-right))
+    max(clamp(1.25rem, 6vw, 3rem), env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
   display: grid;
   place-items: center;
   background:
@@ -147,8 +151,14 @@ h1 {
   background: var(--ready);
 }
 
-.status[data-state="missing"]::before {
+.status[data-state="missing"]::before,
+.status[data-state="error"]::before {
   background: var(--danger);
+}
+
+.status[data-state="connecting"]::before,
+.status[data-state="disconnecting"]::before {
+  background: var(--pending);
 }
 
 .hint {
@@ -159,6 +169,23 @@ h1 {
 
 .hint a {
   color: #9db6ff;
+}
+
+.noscript-note {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: 0.75rem;
+  background: rgba(251, 191, 36, 0.08);
+  color: #f7dfae;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* Without JavaScript the connect control and its status cannot work. */
+html:not(.has-js) #connect-button,
+html:not(.has-js) #wallet-status {
+  display: none;
 }
 
 .button {
@@ -247,6 +274,11 @@ h1 {
   background: var(--surface-strong);
 }
 
+.account:focus {
+  outline: 2px solid #9db6ff;
+  outline-offset: 2px;
+}
+
 .account__label {
   margin: 0;
   color: var(--muted);
@@ -322,6 +354,9 @@ h1 {
   .card {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: max(clamp(1.5rem, 6vw, 2.25rem), env(safe-area-inset-top));
+    padding-bottom: max(clamp(1.5rem, 6vw, 2.25rem), env(safe-area-inset-bottom));
     border-radius: 0;
   }
 }
