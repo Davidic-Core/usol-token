@@ -104,7 +104,7 @@ after(async () => {
   await stopServer(server);
 });
 
-test("homepage serves the public foundation with only local, non-wallet scripts", async () => {
+test("homepage serves the public foundation with local scripts and wallet support", async () => {
   const response = await fetch(`${base}/`);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /text\/html/);
@@ -119,15 +119,21 @@ test("homepage serves the public foundation with only local, non-wallet scripts"
   assert.match(html, /\/assets\/brand\/usol-logo\.png/);
   assert.match(html, /recorded metadata description/i);
   assert.doesNotMatch(html, /dedicated token record follows|separate reviewed release/i);
-  assert.doesNotMatch(html, /Connect Phantom Wallet/);
+  assert.match(html, /id="homepage-connect"[^>]*>Connect Wallet<\/button>/);
+  assert.match(html, /id="wallet-panel-title">Read-only wallet balances\.<\/h2>/);
+  assert.match(html, /FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG/);
+  assert.match(html, /\/wallet-home\.js/);
+  assert.match(html, /id="theme-toggle"/);
+  assert.match(html, /\/theme\.css/);
+  assert.match(html, /\/theme\.js/);
   assert.doesNotMatch(html, /href="\/wallet"/);
 
-  // Only the local navigation and mint copy scripts load: no inline script and
-  // no wallet script are pulled into the public homepage.
+  // The homepage uses local navigation, wallet-core, wallet UI, and mint copy scripts.
   const scriptTags = html.match(/<script\b[^>]*>/gi) || [];
   assert.deepEqual(
     scriptTags.map((tag) => /src="([^"]+)"/.exec(tag)[1]),
-    ["/nav.js", "/token.js"]
+      ["/nav.js", "/wallet-core.js", "/wallet-home.js", "/theme.js", "/token.js"]
+
   );
   assert.doesNotMatch(html, /<script\b(?![^>]*\bsrc=)/i);
   assert.doesNotMatch(html, /\/app\.js/);
@@ -297,11 +303,21 @@ test("stylesheet and Phantom script assets are served with correct types", async
   assert.equal(styles.status, 200);
   assert.match(styles.headers.get("content-type"), /text\/css/);
 
-  const walletStyles = await fetch(`${base}/wallet.css`);
-  assert.equal(walletStyles.status, 200);
-  assert.match(walletStyles.headers.get("content-type"), /text\/css/);
+    const walletStyles = await fetch(`${base}/wallet.css`);
+    assert.equal(walletStyles.status, 200);
+    assert.match(walletStyles.headers.get("content-type"), /text\/css/);
 
-  const script = await fetch(`${base}/app.js`);
+    const themeStyles = await fetch(`${base}/theme.css`);
+    assert.equal(themeStyles.status, 200);
+    assert.match(themeStyles.headers.get("content-type"), /text\/css/);
+
+    const themeScript = await fetch(`${base}/theme.js`);
+    assert.equal(themeScript.status, 200);
+    assert.match(themeScript.headers.get("content-type"), /javascript/);
+    assert.match(await themeScript.text(), /usol-theme/);
+
+    const script = await fetch(`${base}/app.js`);
+
   assert.equal(script.status, 200);
   assert.match(script.headers.get("content-type"), /javascript/);
   assert.match(await script.text(), /window\.phantom/);
