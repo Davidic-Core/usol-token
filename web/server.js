@@ -35,6 +35,7 @@ const ROUTES = {
   "/styles.css": path.join(WEB_ROOT, "styles.css"),
   "/wallet.css": path.join(WEB_ROOT, "wallet.css"),
   "/app.js": path.join(WEB_ROOT, "app.js"),
+  "/wallet-core.js": path.join(WEB_ROOT, "wallet-core.js"),
   "/token.js": path.join(WEB_ROOT, "token.js"),
   "/nav.js": path.join(WEB_ROOT, "nav.js"),
   "/assets/brand/usol-logo.png": path.join(WEB_ROOT, "assets", "brand", "usol-logo.png"),
@@ -42,8 +43,8 @@ const ROUTES = {
   "/logo.png": path.join(REPO_ROOT, "logo.png")
 };
 
-// The preserved Phantom-only page is reachable by direct URL only and must not
-// be indexed while the separately approved multi-wallet phase is pending.
+// The Phantom-only page is reachable by direct URL only and must not be indexed
+// while the multi-wallet increment remains deferred.
 const NOINDEX_ROUTES = new Set(["/wallet", "/wallet.html"]);
 
 const server = http.createServer((request, response) => {

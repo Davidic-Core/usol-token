@@ -43,9 +43,9 @@ No metadata correction or transaction workflow is supported here. Do not restore
 
 ## Website scope
 
-`web/` is a dependency-free static website. The public homepage (`/`) presents the approved Phase One project information and the Phase Two token information section (canonical mint address with a copy control, initial supply, revoked authorities, and links to the specific Solscan token and metadata records); the preserved Phantom connect page remains at `/wallet`, unlinked and `noindex`, and does not display balances, sign, transfer, trade, or swap tokens. This repository does not implement a trading website or wallet transaction functionality.
+`web/` is a dependency-free static website. The public homepage (`/`) presents the approved Phase One project information and the Phase Two token information section (canonical mint address with a copy control, initial supply, revoked authorities, and links to the specific Solscan token and metadata records). The Phantom connect page remains at `/wallet`, unlinked and `noindex`; Phase Three improves it as a **Phantom-only, connection-only** experience with a validated public address, connect/disconnect feedback, and missing-provider, embedded-frame, and error guidance. Solflare, Backpack, and other wallets are deferred. The page does not display balances, sign messages or transactions, transfer, trade, or swap tokens. This repository does not implement a trading website or wallet transaction functionality.
 
-Website tests: `node --test web/tests/server.test.js`. Current phase status, verification results, and the next authorized task are recorded in [`agent/HANDOVER.md`](agent/HANDOVER.md).
+Website and wallet tests: `node --test web/tests/server.test.js web/tests/wallet.test.js`. Current phase status, verification results, and the next authorized task are recorded in [`agent/HANDOVER.md`](agent/HANDOVER.md).
 
 ## Security
 
