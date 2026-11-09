@@ -12,9 +12,13 @@
     <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/png" href="/assets/brand/usol-logo.png" />
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/theme.css" />
     <!-- Local, dependency-free navigation enhancement. Loaded synchronously so
          the mobile menu never flashes as a wrapped list. -->
     <script src="/nav.js"></script>
+    <script src="/wallet-core.js"></script>
+    <script src="/wallet-home.js" defer></script>
+    <script src="/theme.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -49,11 +53,34 @@
             <a href="#transparency">Transparency</a>
             <a href="#risk">Risk</a>
           </nav>
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+          <button class="wallet-connect-button" id="homepage-connect" type="button">Connect Wallet</button>
         </div>
       </div>
     </header>
 
     <main id="main">
+      <section class="wallet-panel" aria-labelledby="wallet-panel-title">
+        <div class="wrap">
+          <div class="wallet-panel__head">
+            <div>
+              <p class="kicker">Wallet overview</p>
+              <h2 id="wallet-panel-title">Read-only wallet balances.</h2>
+              <p class="wallet-panel__copy">Connect a supported wallet to view SOL and USOL balances. This site never requests signatures or transactions.</p>
+            </div>
+            <div id="wallet-status" class="wallet-status" role="status" aria-live="polite">Not connected</div>
+          </div>
+          <div class="wallet-account" id="wallet-account" hidden>
+            <div><span class="wallet-label">Connected wallet</span><strong id="wallet-address"></strong></div>
+            <div class="wallet-actions"><button class="wallet-small-button" id="wallet-copy" type="button">Copy</button><button class="wallet-small-button wallet-small-button--quiet" id="wallet-disconnect" type="button">Disconnect</button></div>
+            <div class="wallet-balances"><div><span class="wallet-label"><img class="wallet-token-logo" src="https://solana.com/src/img/branding/solanaLogoMark.svg" alt="Solana" width="20" height="20" />SOL balance</span><strong id="sol-balance">—</strong></div><div><span class="wallet-label"><img class="wallet-token-logo" src="https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo" alt="UnitedSOLANA" width="20" height="20" />USOL balance</span><strong id="usol-balance">—</strong></div></div>
+          </div>
+        </div>
+      </section>
+      <dialog class="wallet-selector" id="wallet-selector" aria-labelledby="wallet-selector-title">
+        <div class="wallet-selector__head"><h2 id="wallet-selector-title">Choose a wallet</h2><button class="wallet-selector__close" id="wallet-selector-close" type="button" aria-label="Close wallet selector">×</button></div>
+        <p>Only a public address is read.</p><div class="wallet-options"></div>
+      </dialog>
       <section class="hero" aria-labelledby="hero-title">
         <div class="wrap hero__grid">
           <div class="hero__copy">
