@@ -104,7 +104,7 @@ after(async () => {
   await stopServer(server);
 });
 
-test("homepage serves the public foundation with only the mint copy script", async () => {
+test("homepage serves the public foundation with only local, non-wallet scripts", async () => {
   const response = await fetch(`${base}/`);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type"), /text\/html/);
@@ -122,13 +122,40 @@ test("homepage serves the public foundation with only the mint copy script", asy
   assert.doesNotMatch(html, /Connect Phantom Wallet/);
   assert.doesNotMatch(html, /href="\/wallet"/);
 
-  // The only script on the public homepage is the mint copy enhancement; no
-  // inline script and no wallet script are loaded.
+  // Only the local navigation and mint copy scripts load: no inline script and
+  // no wallet script are pulled into the public homepage.
   const scriptTags = html.match(/<script\b[^>]*>/gi) || [];
-  assert.equal(scriptTags.length, 1);
-  assert.match(scriptTags[0], /src="\/token\.js"/);
+  assert.deepEqual(
+    scriptTags.map((tag) => /src="([^"]+)"/.exec(tag)[1]),
+    ["/nav.js", "/token.js"]
+  );
   assert.doesNotMatch(html, /<script\b(?![^>]*\bsrc=)/i);
   assert.doesNotMatch(html, /\/app\.js/);
+});
+
+test("mobile navigation is a local disclosure dropdown", async () => {
+  const html = await (await fetch(`${base}/`)).text();
+
+  assert.match(
+    html,
+    /<button\s+class="nav-toggle"[\s\S]*?aria-expanded="false"[\s\S]*?aria-controls="site-menu"[\s\S]*?data-nav-toggle/
+  );
+  assert.match(html, /<nav class="site-nav" id="site-menu" aria-label="Primary">/);
+  assert.match(html, /class="nav-toggle__icon nav-toggle__icon--menu"/);
+  assert.match(html, /class="nav-toggle__icon nav-toggle__icon--close"/);
+  assert.match(html, /<span class="visually-hidden">Menu<\/span>/);
+
+  const response = await fetch(`${base}/nav.js`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /javascript/);
+
+  const source = await response.text();
+  assert.match(source, /classList\.add\("has-js"\)/);
+  assert.match(source, /aria-expanded/);
+  assert.doesNotMatch(
+    source,
+    /signTransaction|signMessage|sendTransaction|window\.phantom|Keypair|privateKey|fetch\(|XMLHttpRequest/
+  );
 });
 
 test("token section presents the pinned canonical facts", async () => {
@@ -156,6 +183,16 @@ test("token section presents the pinned canonical facts", async () => {
     html,
     /href="https:\/\/solscan\.io\/account\/4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc"/
   );
+
+  // Each branded link points at the exact record, never the explorer homepage.
+  assert.doesNotMatch(html, /href="https:\/\/solscan\.io\/?"/);
+  assert.equal((html.match(/class="explorer-link"/g) || []).length, 2);
+
+  // Brand artwork and link icons are inline local SVG; no icon service is used.
+  assert.match(html, /id="usolArtStroke"/);
+  assert.match(html, /class="explorer-link__icon"[\s\S]*?<svg\b/);
+  assert.ok((html.match(/<svg\b/g) || []).length >= 4, "inline SVG icons are present");
+  assert.doesNotMatch(html, /fontawesome|heroicons|feathericons|cdn\.jsdelivr|cdnjs|unpkg\.com|use\.typekit/i);
 });
 
 test("token section separates initial supply from circulating supply and records revoked authorities", async () => {
