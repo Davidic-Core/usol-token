@@ -35,6 +35,7 @@ const ROUTES = {
   "/styles.css": path.join(WEB_ROOT, "styles.css"),
   "/wallet.css": path.join(WEB_ROOT, "wallet.css"),
   "/app.js": path.join(WEB_ROOT, "app.js"),
+  "/token.js": path.join(WEB_ROOT, "token.js"),
   "/assets/brand/usol-logo.png": path.join(WEB_ROOT, "assets", "brand", "usol-logo.png"),
   "/logo.svg": path.join(REPO_ROOT, "logo.svg"),
   "/logo.png": path.join(REPO_ROOT, "logo.png")

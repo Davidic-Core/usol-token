@@ -25,6 +25,7 @@
         </a>
         <nav class="site-nav" aria-label="Primary">
           <a href="#overview">Overview</a>
+          <a href="#token">Token</a>
           <a href="#principles">Principles</a>
           <a href="#transparency">Transparency</a>
           <a href="#risk">Risk</a>
@@ -122,10 +123,145 @@
         </div>
       </section>
 
+      <section class="section" id="token" aria-labelledby="token-title">
+        <div class="wrap">
+          <div class="section__head">
+            <p class="kicker">02 — Token information</p>
+            <h2 id="token-title">The USOL token record.</h2>
+            <p class="section__lede">
+              These are the project's recorded deployment details for USOL on
+              Solana Mainnet. They are published as recorded at deployment, not as
+              a live check performed now; the Solscan links let you verify them
+              independently on a third-party explorer.
+            </p>
+          </div>
+
+          <div class="token-mint">
+            <div class="token-mint__intro">
+              <h3>Mint address</h3>
+              <p>
+                This is the canonical USOL mint. Any other address is not
+                UnitedSOLANA.
+              </p>
+            </div>
+            <div class="mint">
+              <code class="mint__value" id="mint-address">FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG</code>
+              <button
+                class="copy-button"
+                type="button"
+                data-copy-mint="FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG"
+              >
+                <span class="copy-button__label">Copy</span>
+              </button>
+            </div>
+            <p class="mint__status" id="mint-copy-status" role="status" aria-live="polite"></p>
+            <ul class="token-links">
+              <li>
+                <a
+                  class="text-link"
+                  href="https://solscan.io/token/FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Token on Solscan<span aria-hidden="true">&nbsp;↗</span><span class="visually-hidden"> (opens in a new tab)</span></a>
+              </li>
+              <li>
+                <a
+                  class="text-link"
+                  href="https://solscan.io/account/4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Metadata account on Solscan<span aria-hidden="true">&nbsp;↗</span><span class="visually-hidden"> (opens in a new tab)</span></a>
+              </li>
+            </ul>
+          </div>
+
+          <dl class="token-facts">
+            <div>
+              <dt>Token name</dt>
+              <dd>UnitedSOLANA</dd>
+            </div>
+            <div>
+              <dt>Symbol</dt>
+              <dd>USOL</dd>
+            </div>
+            <div>
+              <dt>Network</dt>
+              <dd>Solana Mainnet <span class="token-facts__aside">mainnet-beta</span></dd>
+            </div>
+            <div>
+              <dt>Token standard</dt>
+              <dd>Classic SPL Token</dd>
+            </div>
+            <div>
+              <dt>Decimals</dt>
+              <dd>9</dd>
+            </div>
+            <div>
+              <dt>Initial supply</dt>
+              <dd>1,000,000,000 USOL</dd>
+            </div>
+          </dl>
+
+          <div class="token-supply">
+            <article class="token-stat">
+              <h3>Initial supply</h3>
+              <p class="token-stat__value">1,000,000,000 USOL</p>
+              <p>
+                The supply created when the mint was initialised, recorded at
+                deployment. Because the mint authority is revoked, this figure
+                cannot be increased by further minting.
+              </p>
+            </article>
+            <article class="token-stat">
+              <h3>Circulating supply</h3>
+              <p class="token-stat__value token-stat__value--muted">Not published</p>
+              <p>
+                The project has no verified circulating-supply figure to publish,
+                so none is shown here — an initial supply is not the same as a
+                circulating one. Live holder balances belong to on-chain data and
+                should be checked at a third-party explorer, not inferred from
+                this page.
+              </p>
+            </article>
+          </div>
+
+          <div class="token-authority">
+            <article class="token-stat">
+              <div class="token-stat__head">
+                <h3>Mint authority</h3>
+                <span class="status-pill">Revoked</span>
+              </div>
+              <p>
+                Recorded as <code>null</code> at deployment: no new USOL can ever
+                be minted.
+              </p>
+            </article>
+            <article class="token-stat">
+              <div class="token-stat__head">
+                <h3>Freeze authority</h3>
+                <span class="status-pill">Revoked</span>
+              </div>
+              <p>
+                Recorded as <code>null</code> at deployment: token accounts cannot
+                be frozen by the issuer.
+              </p>
+            </article>
+          </div>
+
+          <p class="token-source">
+            Recorded facts come from the project's pinned Mainnet deployment
+            record and match the published metadata. Authority status is stated as
+            recorded at deployment — confirm it on Solscan before relying on it.
+            Solscan is an independent third-party explorer, not operated by
+            UnitedSOLANA.
+          </p>
+        </div>
+      </section>
+
       <section class="section" id="principles" aria-labelledby="principles-title">
         <div class="wrap">
           <div class="section__head">
-            <p class="kicker">02 — Principles</p>
+            <p class="kicker">03 — Principles</p>
             <h2 id="principles-title">Three standards for everything we publish.</h2>
           </div>
           <div class="cards">
@@ -134,7 +270,8 @@
               <h3>Speed with clarity</h3>
               <p>
                 The site is built to load quickly and read clearly on a phone,
-                with no scripts, trackers, or wallet dependencies on public pages.
+                with no trackers or wallet dependencies, and no scripts needed to
+                read any page.
               </p>
             </article>
             <article class="card">
@@ -160,7 +297,7 @@
       <section class="section" id="transparency" aria-labelledby="transparency-title">
         <div class="wrap">
           <div class="section__head">
-            <p class="kicker">03 — Transparency</p>
+            <p class="kicker">04 — Transparency</p>
             <h2 id="transparency-title">What we publish, and how we label it.</h2>
           </div>
           <div class="ledger">
@@ -200,7 +337,7 @@
         <div class="wrap">
           <div class="risk-panel">
             <div class="risk-panel__intro">
-              <p class="kicker">04 — Risk</p>
+              <p class="kicker">05 — Risk</p>
               <h2 id="risk-title">Understand the risk before you interact.</h2>
               <p>
                 UnitedSOLANA is a cryptocurrency token. Its value can fall as well
@@ -240,6 +377,7 @@
         </div>
         <nav class="footer-nav" aria-label="Footer">
           <a href="#overview">Overview</a>
+          <a href="#token">Token</a>
           <a href="#principles">Principles</a>
           <a href="#transparency">Transparency</a>
           <a href="#risk">Risk</a>
@@ -250,5 +388,7 @@
         </p>
       </div>
     </footer>
+
+    <script src="/token.js" defer></script>
   </body>
 </html>
