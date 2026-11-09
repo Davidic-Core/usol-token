@@ -258,7 +258,38 @@ test("preserved wallet page stays available, unlinked, and no-indexed", async ()
   assert.match(html, /name="robots" content="noindex, nofollow"/);
   assert.match(html, /id="open-tab" href="\/wallet"/);
   assert.match(html, /\/wallet\.css/);
-  assert.match(html, /\/app\.js/);
+  assert.match(html, /id="account" tabindex="-1"/);
+  assert.match(html, /<noscript>/);
+  assert.match(
+    html,
+    /<script src="\/wallet-core\.js" defer><\/script>\s*<script src="\/app\.js" defer><\/script>/
+  );
+});
+
+test("wallet scripts stay connection-only and validate public addresses", async () => {
+  const appResponse = await fetch(`${base}/app.js`);
+  assert.equal(appResponse.status, 200);
+  assert.match(appResponse.headers.get("content-type"), /javascript/);
+
+  const app = await appResponse.text();
+  assert.match(app, /USOLWalletCore/);
+  assert.match(app, /isPublicAddress/);
+  assert.match(app, /onlyIfTrusted/);
+  assert.match(app, /visibilitychange/);
+  assert.match(app, /disconnect\(\)/);
+  assert.doesNotMatch(app, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
+  assert.doesNotMatch(app, /Keypair|privateKey|seedPhrase/);
+  assert.doesNotMatch(app, /fetch\(|XMLHttpRequest/);
+  assert.doesNotMatch(app, /localStorage\.(?:set|get|remove)Item|sessionStorage\.|document\.cookie\s*=/);
+
+  const coreResponse = await fetch(`${base}/wallet-core.js`);
+  assert.equal(coreResponse.status, 200);
+  assert.match(coreResponse.headers.get("content-type"), /javascript/);
+
+  const coreSource = await coreResponse.text();
+  assert.match(coreSource, /phantom\.com\/ul\/browse/);
+  assert.doesNotMatch(coreSource, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
+  assert.doesNotMatch(coreSource, /window\.phantom|fetch\(|XMLHttpRequest|localStorage|sessionStorage/);
 });
 
 test("stylesheet and Phantom script assets are served with correct types", async () => {

@@ -59,12 +59,12 @@ Every phase follows this controlled cycle:
 
 Use `agent/WEBSITE_ARCHITECTURE.md` §18 as the detailed proposal and acceptance checklist. Phase numbers below match that section; do not renumber them in new documents.
 
-Status of this sequence: Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is planned, not started, and not authorized. See `agent/HANDOVER.md` for the verified state.
+Status of this sequence: Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is approved as a **Phantom-only, connection-only** increment and is implemented in the working tree, pending owner review; it is not committed. Solflare, Backpack, and other wallet integrations are deferred to a future, separately approved increment. See `agent/HANDOVER.md` for the verified state.
 
 - **Phase 0 — Discovery and architecture/design:** Inspect current implementation; agree on mission, branding, page structure, technology and design. Deliver plans or mockups only unless implementation is separately authorized.
 - **Phase 1 — Public website foundation:** Build or refine approved responsive public pages and navigation, using verified project information and approved assets. No wallet-dependent feature is implied by this phase.
 - **Phase 2 — Verified token information:** Present only canonical or verifiably sourced facts with clear distinctions between fixed deployment facts and live/external market data. No fabricated prices, liquidity, volume, listings, partnerships, or utility.
-- **Phase 3 — Connection-only multi-wallet support:** Only when separately authorized, provide wallet discovery/selection, connect/disconnect, public address and connection status, and understandable unsupported-wallet/error states. Support Phantom, Solflare, Backpack, and other compatible Solana wallets through Wallet Standard detection where supported. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
+- **Phase 3 — Connection-only Phantom support (approved):** Provide Phantom detection, user-initiated connect/disconnect, a validated public address and connection status, and understandable missing-provider, embedded-frame, rejection, and provider-error states, with mobile/in-app-browser guidance. Solflare, Backpack, and other Wallet Standard wallets are **deferred** to a future, separately approved increment; do not describe this phase as multi-wallet. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
 - **Phase 4 — Future integrations, each separately proposed:** A distinct proposal and approval are required for any feature outside the connection-only scope. Root `AGENT.md` controls what is allowed. A user request cannot authorize violating its prohibitions. Never request or expose a private key or seed phrase, use project-owned signing keys, or change token authorities.
 - **Phase 5 — Ecosystem content and expansion:** Verify and source every resource or update; no implied partnerships, fabricated utilities, or unapproved data collection.
 - **Phase 6 — Optimization and launch readiness:** Each feature, external service, and launch/deployment action needs its own defined scope and approval. No payments, staking, rewards, smart contracts, analytics, or production deployment is implied by this phase label.
@@ -73,7 +73,7 @@ A phase may be split into smaller user-approved increments. Do not combine phase
 
 ## 6. Website organization and repository safety
 
-All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) with the Phase Two token information section and two progressive-enhancement scripts (`nav.js` for the mobile disclosure menu, `token.js` for the mint copy control), plus a preserved Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `app.js`). See `agent/HANDOVER.md` for the current phase status, verified commit, test results, and next starting point. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page is unlinked and `noindex`; do not assume either is safe to replace or that the wallet page already satisfies multi-wallet requirements.
+All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) with the Phase Two token information section and two progressive-enhancement scripts (`nav.js` for the mobile disclosure menu, `token.js` for the mint copy control), plus the Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `wallet-core.js`, `app.js`, and `web/tests/wallet.test.js`). See `agent/HANDOVER.md` for the current phase status, verified commit, test results, and next starting point. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page remains unlinked and `noindex`; do not assume either is safe to replace, and do not treat the Phantom-only page as satisfying the deferred multi-wallet increment.
 
 Use the architecture document's proposed structure as a target only, not a directive to restructure immediately. Preserve the current entry points and local server behavior until an approved migration plan exists. Keep website code and configuration separate from root token scripts, `config/`, `deployments/`, and verification tests. Avoid unrelated root `package.json` changes; do not add dependencies without an approved justification and security review. Do not move or duplicate the official logo without checking its source and serving path.
 
@@ -81,14 +81,17 @@ Before editing, inspect the target file and nearby references. Use narrow, revie
 
 ## 7. Initial wallet scope and security boundaries
 
-The planned initial wallet functionality is **connection-only** and requires a separately approved implementation phase. It includes:
+The approved Phase 3 wallet functionality is **Phantom-only and connection-only**. It includes:
 
-- Discovering and selecting Phantom, Solflare, Backpack, and compatible wallets detected through Wallet Standard where supported.
+- Detecting Phantom through its documented provider (`window.phantom.solana`, with legacy `window.solana` as documented), including late provider injection in mobile in-app browsers.
 - Connecting and disconnecting at the user's explicit direction.
-- Showing the connected wallet's public address and detected wallet identity.
-- Indicating connection state and handling missing/unsupported wallets, user rejection, and provider errors.
+- Showing the connected wallet's validated public address and connection status.
+- Handling missing providers, embedded frames, user rejection, timeouts, account changes, and documented Phantom provider errors, with mobile/in-app-browser guidance.
+- Directing a mobile visitor without an injected provider to Phantom's documented Browse deep link (`https://phantom.com/ul/browse/<url>?ref=<ref>`).
 
-It excludes transaction signing, token transfers, swaps, wallet-based payments, and other transaction submission. Do not add these capabilities under the description of connection support. Do not request, collect, store, or transmit private keys or seed phrases. Do not equate connection or public-address access with permission to transact. Use maintained standards/libraries only after approval and review their trust boundaries and compatibility.
+Solflare, Backpack, Wallet Standard discovery, and any other wallet integration are **deferred** to a future, separately approved increment and are not part of Phase 3.
+
+It excludes transaction signing, message signing, token transfers, swaps, wallet-based payments, balance display, and other transaction submission. Do not add these capabilities under the description of connection support. Do not request, collect, store, or transmit private keys or seed phrases. Do not equate connection or public-address access with permission to transact. The approved Phantom-only increment needs no wallet library because Phantom injects its provider; any library or adapter for the deferred multi-wallet increment requires separate approval and a trust-boundary review.
 
 All security, factual accuracy, testing, and read-only tooling restrictions in root `AGENT.md` apply. Keep tests offline where possible; mock wallet providers and never execute a real blockchain transaction in automated tests.
 
