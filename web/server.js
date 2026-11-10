@@ -37,6 +37,7 @@ const ROUTES = {
   "/wallet.css": path.join(WEB_ROOT, "wallet.css"),
   "/app.js": path.join(WEB_ROOT, "app.js"),
   "/wallet-core.js": path.join(WEB_ROOT, "wallet-core.js"),
+  "/wallet-discovery.js": path.join(WEB_ROOT, "wallet-discovery.js"),
   "/token.js": path.join(WEB_ROOT, "token.js"),
   "/nav.js": path.join(WEB_ROOT, "nav.js"),
   "/wallet-home.js": path.join(WEB_ROOT, "wallet-home.js"),
