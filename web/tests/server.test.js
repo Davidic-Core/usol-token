@@ -132,7 +132,7 @@ test("homepage serves the public foundation with local scripts and wallet suppor
   const scriptTags = html.match(/<script\b[^>]*>/gi) || [];
   assert.deepEqual(
     scriptTags.map((tag) => /src="([^"]+)"/.exec(tag)[1]),
-      ["/nav.js", "/wallet-core.js", "/wallet-home.js", "/theme.js", "/token.js"]
+      ["/nav.js", "/wallet-core.js", "/wallet-discovery.js", "/wallet-home.js", "/theme.js", "/token.js"]
 
   );
   assert.doesNotMatch(html, /<script\b(?![^>]*\bsrc=)/i);
@@ -296,6 +296,23 @@ test("wallet scripts stay connection-only and validate public addresses", async 
   assert.match(coreSource, /phantom\.com\/ul\/browse/);
   assert.doesNotMatch(coreSource, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
   assert.doesNotMatch(coreSource, /window\.phantom|fetch\(|XMLHttpRequest|localStorage|sessionStorage/);
+
+  // Wallet Standard discovery is served locally, with no wallet name hardcoded
+  // as the only option and no Backpack integration left behind.
+  const discoveryResponse = await fetch(`${base}/wallet-discovery.js`);
+  assert.equal(discoveryResponse.status, 200);
+  assert.match(discoveryResponse.headers.get("content-type"), /javascript/);
+
+  const discoverySource = await discoveryResponse.text();
+  assert.match(discoverySource, /wallet-standard:register-wallet/);
+  assert.match(discoverySource, /standard:connect/);
+
+  const homeSource = await (await fetch(`${base}/wallet-home.js`)).text();
+  assert.match(homeSource, /getBalance/);
+  assert.match(homeSource, /getTokenAccountsByOwner/);
+  assert.doesNotMatch(homeSource, /Backpack|backpack/);
+  assert.doesNotMatch(homeSource, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
+  assert.doesNotMatch(homeSource, /seedPhrase|privateKey|Keypair/);
 });
 
 test("stylesheet and Phantom script assets are served with correct types", async () => {
