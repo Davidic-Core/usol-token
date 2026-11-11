@@ -49,18 +49,19 @@ The existing project includes:
 - "web/server.js" — dependency-free static server.
 - "web/nav.js" — mobile navigation enhancement.
 - "web/token.js" — token mint copy functionality.
-- "web/wallet.html" — Phantom wallet connection page.
-- "web/wallet.css" — wallet page styles.
-- "web/wallet-core.js" — wallet-related helper logic.
-- "web/app.js" — wallet connection behavior.
+- "web/wallet-core.js" — wallet-related helper logic and balance formatting.
+- "web/wallet-discovery.js" — Solana Wallet Standard discovery.
+- "web/wallet-home.js" — homepage wallet panel (connect, disconnect, account switching, read-only balances).
 - "web/assets/brand/usol-logo.png" — website logo asset.
 - "web/tests/" — website-specific tests.
 
 Inspect the actual branch before relying on this list as a complete inventory.
 
-The homepage includes the Phase Two token information section. The "/wallet" page provides the Phase Three Phantom-only connection experience.
+The homepage includes the Phase Two token information section and the Phase Three wallet panel: Wallet Standard discovery, connect/disconnect, account switching and read-only SOL/USOL balances.
 
-The homepage and wallet page must not be assumed to contain balance display or swap functionality.
+The homepage must not be assumed to contain swap functionality.
+
+Balance reads go through the site's own server-side proxy, `POST /api/rpc`, which accepts only `getBalance` and `getTokenAccountsByOwner`. The upstream Mainnet endpoint is set with the server-side `SOLANA_RPC_URL` or `HELIUS_API_KEY` environment variable; the key is never served to the browser.
 
 Repository constraints
 

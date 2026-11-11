@@ -12,12 +12,12 @@
   const selector = document.getElementById("wallet-selector");
   if (!core || !discovery || !selector) return;
 
-  // Solana Mainnet JSON-RPC. Solana's public endpoint refuses requests from web
-  // origins it does not recognise (HTTP 403) and some public endpoints require a
-  // personal token for getTokenAccountsByOwner, so the endpoint is set per
-  // deployment with <meta name="solana-rpc-url"> rather than being hardcoded.
-  const RPC_META = document.querySelector('meta[name="solana-rpc-url"]');
-  const RPC = ((RPC_META && RPC_META.getAttribute("content")) || "").trim() || "https://api.mainnet-beta.solana.com";
+  // Balances are read through this site's own server-side proxy (/api/rpc).
+  // The Solana Mainnet endpoint and its Helius API key stay in the server
+  // environment, so no key is sent to the browser and the page never calls a
+  // third-party RPC origin directly.
+  const RPC_ENDPOINT = "/api/rpc";
+  const RPC_TIMEOUT_MS = 20000;
   const MINT = core.USOL_MINT;
   const options = selector.querySelector(".wallet-options");
   const help = document.getElementById("wallet-selector-help");
@@ -62,26 +62,66 @@
   const detect = () => discovery.collectWallets(registry.get(), legacyProviders());
 
   let rpcId = 0;
+  // One read-only request through the local proxy. An aborted run, an HTTP
+  // error, a JSON-RPC error and a stalled request each surface as a clear
+  // message instead of a blank balance.
   async function rpc(method, params, signal) {
     rpcId += 1;
-    const response = await fetch(RPC, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: rpcId, method, params }),
-      signal
-    });
-    if (!response.ok) {
-      const error = new Error(
-        response.status === 403
-          ? "Balances are unavailable. The Solana RPC endpoint refused this site (HTTP 403)."
-          : `Solana Mainnet RPC returned HTTP ${response.status}.`
-      );
-      error.status = response.status;
-      throw error;
+    const controller = new AbortController();
+    let timedOut = false;
+    const forwardAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener("abort", forwardAbort, { once: true });
     }
-    const payload = await response.json();
-    if (payload.error) throw new Error(payload.error.message || "Solana Mainnet RPC returned an error.");
-    return payload.result;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, RPC_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(RPC_ENDPOINT, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: rpcId, method, params }),
+        signal: controller.signal
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {
+        payload = null;
+      }
+
+      const rpcMessage =
+        payload && payload.error && typeof payload.error.message === "string"
+          ? payload.error.message.trim()
+          : "";
+
+      if (!response.ok) {
+        const error = new Error(
+          rpcMessage || `The balance service returned HTTP ${response.status}.`
+        );
+        error.status = response.status;
+        throw error;
+      }
+      if (!payload || typeof payload !== "object") {
+        throw new Error("The balance service returned an unreadable response.");
+      }
+      if (payload.error) {
+        throw new Error(rpcMessage || "Solana Mainnet RPC returned an error.");
+      }
+      return payload.result;
+    } catch (error) {
+      if (timedOut && !(signal && signal.aborted)) {
+        throw new Error("The balance request timed out. Try again.");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", forwardAbort);
+    }
   }
 
   // Read-only balances for one address. The run counter plus the abort signal

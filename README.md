@@ -63,13 +63,20 @@ Current website functionality includes:
 - Canonical USOL mint address and copy control.
 - Solscan token and metadata links.
 - Responsive navigation.
-- A Phantom-only wallet connection and disconnection page at "/wallet".
+- A homepage wallet panel: Solana Wallet Standard discovery, connect and
+  disconnect, account switching, and read-only SOL and USOL balances.
 
-The wallet page is unlinked from the homepage and marked "noindex".
+Balances are read through the site's own server-side Solana Mainnet RPC proxy
+(`POST /api/rpc`), which accepts only `getBalance` and `getTokenAccountsByOwner`.
+The upstream endpoint is set with `SOLANA_RPC_URL` (or `HELIUS_API_KEY` for a
+Helius Mainnet endpoint); the key stays on the server and is never served to the
+browser.
 
-The current wallet implementation does not display balances, sign messages or transactions, transfer tokens, buy or sell tokens, or execute swaps.
+The wallet panel does not sign messages or transactions, transfer tokens, buy or
+sell tokens, or execute swaps.
 
-Future functionality, including read-only balances and token swaps, requires separate technical review and explicit owner approval.
+Future functionality, including token swaps, requires separate technical review
+and explicit owner approval.
 
 Development documentation
 

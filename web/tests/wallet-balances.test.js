@@ -72,7 +72,16 @@ test("ignores malformed token account entries", () => {
 
 test("keeps precision for amounts as large as the USOL supply", () => {
   const total = core.sumTokenAccounts([tokenAccount("1000000000000000000")]);
-  assert.equal(core.formatUsolBalance(total), "1000000000 USOL");
+  assert.equal(core.formatUsolBalance(total), "1,000,000,000 USOL");
+});
+
+test("groups thousands and sums every USOL token account exactly", () => {
+  const total = core.sumTokenAccounts([
+    tokenAccount("900000000194665284"),
+    tokenAccount("18807841000000000")
+  ]);
+  assert.equal(core.formatUsolBalance(total), "918,807,841.194665284 USOL");
+  assert.doesNotMatch(core.formatUsolBalance(total), /\$|USD/);
 });
 
 test("explains an RPC failure in plain language", () => {
