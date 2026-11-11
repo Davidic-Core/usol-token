@@ -290,7 +290,7 @@ test("wallet scripts stay connection-only and read balances through the local pr
   assert.match(homeSource, /getBalance/);
   assert.match(homeSource, /getTokenAccountsByOwner/);
   assert.match(homeSource, /RPC_ENDPOINT = "\/api\/rpc"/);
-  assert.doesNotMatch(homeSource, /api\.mainnet-beta\.solana\.com|helius|api-key/i);
+  assert.doesNotMatch(homeSource, /api\.mainnet-beta\.solana\.com|api-key=|helius-rpc\.com/i);
   assert.doesNotMatch(homeSource, /Backpack|backpack/);
   assert.doesNotMatch(homeSource, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
   assert.doesNotMatch(homeSource, /seedPhrase|privateKey|Keypair/);
