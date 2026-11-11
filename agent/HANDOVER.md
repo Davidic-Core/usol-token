@@ -48,16 +48,18 @@ Public homepage
 - "web/token.js" — mint-address copy functionality.
 - "web/assets/brand/usol-logo.png" — approved logo.
 
-Phantom connection page
+Homepage wallet panel
 
-- "web/wallet.html" — Phantom connection page at "/wallet", unlinked and "noindex".
-- "web/wallet.css" — wallet page styling.
-- "web/wallet-core.js" — address validation, deep-link and error helpers.
-- "web/app.js" — Phantom provider detection, connection and disconnection.
+- "web/wallet-core.js" — address validation, balance formatting and error helpers.
+- "web/wallet-discovery.js" — Solana Wallet Standard discovery and connection.
+- "web/wallet-home.js" — homepage wallet panel: connect, disconnect, account switching and read-only SOL/USOL balances.
+- "web/server.js" — also serves `POST /api/rpc`, a read-only Solana Mainnet proxy (getBalance, getTokenAccountsByOwner) whose Helius key stays server-side.
 - "web/tests/server.test.js" — website route, security and markup tests.
 - "web/tests/wallet.test.js" — wallet helper tests.
+- "web/tests/wallet-balances.test.js" — balance formatting tests.
+- "web/tests/wallet-discovery.test.js" — discovery helper tests.
 
-Phase Three included provider detection, trusted-session restoration, address validation, connection and disconnection feedback, provider event handling, accessibility improvements and mobile/embedded-browser guidance.
+Phase Three included provider detection, trusted-session restoration, address validation, connection and disconnection feedback, provider event handling, accessibility improvements and mobile/embedded-browser guidance. The separate "/wallet" page and its "wallet.html", "wallet.css" and "app.js" files were removed; the homepage panel replaces them.
 
 4. Token protection
 

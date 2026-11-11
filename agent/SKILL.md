@@ -246,7 +246,7 @@ The existing website is a static, dependency-free vanilla HTML/CSS/JavaScript ap
 
 Preserve this architecture unless the user separately approves a migration proposal.
 
-The existing public homepage and "/wallet" route must be inspected before modification. Do not assume the homepage already contains wallet balances or swap functionality.
+The existing public homepage contains the wallet connection panel and read-only SOL/USOL balances, served through the local `POST /api/rpc` proxy. Inspect it before modification. Do not assume the homepage contains swap functionality.
 
 Keep website code and configuration separate from:
 

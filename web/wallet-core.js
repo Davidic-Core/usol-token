@@ -169,23 +169,33 @@
     return total;
   }
 
-  // `getBalance` returns lamports; the UI divides by 1e9 for SOL.
+  // Groups the whole part of a plain decimal string in thousands:
+  // 918807841.194665284 -> 918,807,841.194665284
+  function groupThousands(value) {
+    var match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value);
+    if (!match) return value;
+    var whole = match[2].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return match[1] + whole + (match[3] ? "." + match[3] : "");
+  }
+
+  // `getBalance` returns lamports; 1 SOL is 1,000,000,000 lamports.
   function formatSolBalance(lamports) {
     var value = formatRawAmount(
       lamports === null || lamports === undefined ? 0 : lamports,
       SOL_DECIMALS
     );
-    return value === null ? "Unavailable" : value + " SOL";
+    return value === null ? "Unavailable" : groupThousands(value) + " SOL";
   }
 
   // USOL uses 9 decimals, so raw base units are summed and divided by 1e9. An
-  // empty token-account list formats as "0 USOL".
+  // empty token-account list formats as "0 USOL". No price or USD value is
+  // ever shown here: this is the token quantity only.
   function formatUsolBalance(rawAmount) {
     var value = formatRawAmount(
       rawAmount === null || rawAmount === undefined ? 0 : rawAmount,
       USOL_DECIMALS
     );
-    return value === null ? "Unavailable" : value + " USOL";
+    return value === null ? "Unavailable" : groupThousands(value) + " USOL";
   }
 
   function describeBalanceError(error) {

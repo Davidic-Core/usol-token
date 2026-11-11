@@ -36,10 +36,10 @@ async function getAvailablePort() {
   return availablePort;
 }
 
-async function startServer({ serverPath = SERVER_PATH, host = "127.0.0.1" } = {}) {
+async function startServer({ serverPath = SERVER_PATH, host = "127.0.0.1", env = {} } = {}) {
   const assignedPort = await getAvailablePort();
   const child = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, HOST: host, PORT: String(assignedPort) },
+    env: { ...process.env, HOST: host, PORT: String(assignedPort), ...env },
     stdio: ["ignore", "pipe", "pipe"]
   });
 
@@ -127,6 +127,8 @@ test("homepage serves the public foundation with local scripts and wallet suppor
   assert.match(html, /\/theme\.css/);
   assert.match(html, /\/theme\.js/);
   assert.doesNotMatch(html, /href="\/wallet"/);
+  // The RPC endpoint is server-side only: no endpoint or key in the markup.
+  assert.doesNotMatch(html, /solana-rpc-url|helius|api-key/i);
 
   // The homepage uses local navigation, wallet-core, wallet UI, and mint copy scripts.
   const scriptTags = html.match(/<script\b[^>]*>/gi) || [];
@@ -254,40 +256,17 @@ test("mint copy script is served and contains no wallet or transaction code", as
   );
 });
 
-test("preserved wallet page stays available, unlinked, and no-indexed", async () => {
-  const response = await fetch(`${base}/wallet`);
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+test("the removed wallet page and its exclusive assets are no longer served", async () => {
+  for (const removed of ["/wallet", "/wallet.html", "/wallet.css", "/app.js"]) {
+    const response = await fetch(`${base}${removed}`);
+    assert.equal(response.status, 404, `${removed} should no longer be served`);
+  }
 
-  const html = await response.text();
-  assert.match(html, /Connect Phantom Wallet/);
-  assert.match(html, /name="robots" content="noindex, nofollow"/);
-  assert.match(html, /id="open-tab" href="\/wallet"/);
-  assert.match(html, /\/wallet\.css/);
-  assert.match(html, /id="account" tabindex="-1"/);
-  assert.match(html, /<noscript>/);
-  assert.match(
-    html,
-    /<script src="\/wallet-core\.js" defer><\/script>\s*<script src="\/app\.js" defer><\/script>/
-  );
+  const home = await (await fetch(`${base}/`)).text();
+  assert.doesNotMatch(home, /wallet\.html|wallet\.css|\/app\.js|href="\/wallet"/);
 });
 
-test("wallet scripts stay connection-only and validate public addresses", async () => {
-  const appResponse = await fetch(`${base}/app.js`);
-  assert.equal(appResponse.status, 200);
-  assert.match(appResponse.headers.get("content-type"), /javascript/);
-
-  const app = await appResponse.text();
-  assert.match(app, /USOLWalletCore/);
-  assert.match(app, /isPublicAddress/);
-  assert.match(app, /onlyIfTrusted/);
-  assert.match(app, /visibilitychange/);
-  assert.match(app, /disconnect\(\)/);
-  assert.doesNotMatch(app, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
-  assert.doesNotMatch(app, /Keypair|privateKey|seedPhrase/);
-  assert.doesNotMatch(app, /fetch\(|XMLHttpRequest/);
-  assert.doesNotMatch(app, /localStorage\.(?:set|get|remove)Item|sessionStorage\.|document\.cookie\s*=/);
-
+test("wallet scripts stay connection-only and read balances through the local proxy", async () => {
   const coreResponse = await fetch(`${base}/wallet-core.js`);
   assert.equal(coreResponse.status, 200);
   assert.match(coreResponse.headers.get("content-type"), /javascript/);
@@ -310,34 +289,26 @@ test("wallet scripts stay connection-only and validate public addresses", async 
   const homeSource = await (await fetch(`${base}/wallet-home.js`)).text();
   assert.match(homeSource, /getBalance/);
   assert.match(homeSource, /getTokenAccountsByOwner/);
+  assert.match(homeSource, /RPC_ENDPOINT = "\/api\/rpc"/);
+  assert.doesNotMatch(homeSource, /api\.mainnet-beta\.solana\.com|api-key=|helius-rpc\.com/i);
   assert.doesNotMatch(homeSource, /Backpack|backpack/);
   assert.doesNotMatch(homeSource, /signTransaction\s*\(|signMessage\s*\(|sendTransaction\s*\(/);
   assert.doesNotMatch(homeSource, /seedPhrase|privateKey|Keypair/);
 });
 
-test("stylesheet and Phantom script assets are served with correct types", async () => {
+test("stylesheet and theme assets are served with correct types", async () => {
   const styles = await fetch(`${base}/styles.css`);
   assert.equal(styles.status, 200);
   assert.match(styles.headers.get("content-type"), /text\/css/);
 
-    const walletStyles = await fetch(`${base}/wallet.css`);
-    assert.equal(walletStyles.status, 200);
-    assert.match(walletStyles.headers.get("content-type"), /text\/css/);
+  const themeStyles = await fetch(`${base}/theme.css`);
+  assert.equal(themeStyles.status, 200);
+  assert.match(themeStyles.headers.get("content-type"), /text\/css/);
 
-    const themeStyles = await fetch(`${base}/theme.css`);
-    assert.equal(themeStyles.status, 200);
-    assert.match(themeStyles.headers.get("content-type"), /text\/css/);
-
-    const themeScript = await fetch(`${base}/theme.js`);
-    assert.equal(themeScript.status, 200);
-    assert.match(themeScript.headers.get("content-type"), /javascript/);
-    assert.match(await themeScript.text(), /usol-theme/);
-
-    const script = await fetch(`${base}/app.js`);
-
-  assert.equal(script.status, 200);
-  assert.match(script.headers.get("content-type"), /javascript/);
-  assert.match(await script.text(), /window\.phantom/);
+  const themeScript = await fetch(`${base}/theme.js`);
+  assert.equal(themeScript.status, 200);
+  assert.match(themeScript.headers.get("content-type"), /javascript/);
+  assert.match(await themeScript.text(), /usol-theme/);
 });
 
 test("served logo matches the expected PNG asset digest", async () => {
@@ -349,6 +320,131 @@ test("served logo matches the expected PNG asset digest", async () => {
   assert.equal(bytes.length, 22027);
   assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   assert.equal(createHash("sha256").update(bytes).digest("hex"), LOGO_SHA256);
+});
+
+const RPC_ADDRESS = "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG";
+
+function startUpstream(handler) {
+  const upstream = http.createServer(handler);
+  return new Promise((resolve) => {
+    upstream.listen(0, "127.0.0.1", () => {
+      resolve({ server: upstream, url: `http://127.0.0.1:${upstream.address().port}` });
+    });
+  });
+}
+
+function stopUpstream(upstream) {
+  if (typeof upstream.closeAllConnections === "function") upstream.closeAllConnections();
+  return new Promise((resolve) => upstream.close(resolve));
+}
+
+function rpcPost(targetBase, payload) {
+  return fetch(`${targetBase}/api/rpc`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
+test("the RPC proxy forwards only the read-only balance methods", async () => {
+  const calls = [];
+  const upstream = await startUpstream((request, response) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", () => {
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      calls.push(body);
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { value: 2500000000 } }));
+    });
+  });
+
+  let proxy;
+  try {
+    const started = await startServer({ env: { SOLANA_RPC_URL: upstream.url } });
+    proxy = started.child;
+
+    const balance = await rpcPost(started.base, {
+      jsonrpc: "2.0",
+      id: 7,
+      method: "getBalance",
+      params: [RPC_ADDRESS, { commitment: "confirmed" }]
+    });
+    assert.equal(balance.status, 200);
+    const payload = await balance.json();
+    assert.equal(payload.id, 7);
+    assert.equal(payload.result.value, 2500000000);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, "getBalance");
+    assert.deepEqual(calls[0].params, [RPC_ADDRESS, { commitment: "confirmed" }]);
+
+    const blocked = await rpcPost(started.base, {
+      jsonrpc: "2.0",
+      id: 8,
+      method: "sendTransaction",
+      params: [RPC_ADDRESS]
+    });
+    assert.equal(blocked.status, 400);
+    assert.equal(calls.length, 1, "a non-balance method never reaches the upstream endpoint");
+
+    const invalid = await rpcPost(started.base, {
+      jsonrpc: "2.0",
+      id: 9,
+      method: "getBalance",
+      params: ["not-a-wallet"]
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal(calls.length, 1);
+
+    const wrongMethod = await fetch(`${started.base}/api/rpc`);
+    assert.equal(wrongMethod.status, 405);
+    assert.equal(wrongMethod.headers.get("allow"), "POST");
+  } finally {
+    await stopServer(proxy);
+    await stopUpstream(upstream.server);
+  }
+});
+
+test("the RPC proxy reports upstream HTTP failures and timeouts", async () => {
+  const failing = await startUpstream((request, response) => {
+    request.resume();
+    response.writeHead(500, { "content-type": "application/json" });
+    response.end(JSON.stringify({ error: "upstream failure" }));
+  });
+  const hanging = await startUpstream(() => {});
+
+  let errorProxy;
+  let timeoutProxy;
+  try {
+    const errorStarted = await startServer({ env: { SOLANA_RPC_URL: failing.url } });
+    errorProxy = errorStarted.child;
+    const failed = await rpcPost(errorStarted.base, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getTokenAccountsByOwner",
+      params: [RPC_ADDRESS, { mint: RPC_ADDRESS }, { encoding: "jsonParsed" }]
+    });
+    assert.equal(failed.status, 502);
+    assert.match((await failed.json()).error.message, /HTTP 500/);
+
+    const timeoutStarted = await startServer({
+      env: { SOLANA_RPC_URL: hanging.url, USOL_RPC_TIMEOUT_MS: "150" }
+    });
+    timeoutProxy = timeoutStarted.child;
+    const timedOut = await rpcPost(timeoutStarted.base, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "getBalance",
+      params: [RPC_ADDRESS]
+    });
+    assert.equal(timedOut.status, 504);
+    assert.match((await timedOut.json()).error.message, /timed out/i);
+  } finally {
+    await stopServer(errorProxy);
+    await stopServer(timeoutProxy);
+    await stopUpstream(failing.server);
+    await stopUpstream(hanging.server);
+  }
 });
 
 test("unknown routes return 404 and unsupported methods return 405", async () => {
@@ -392,8 +488,8 @@ test("file read failures return a generic HTTP 500 response", async () => {
     const started = await startServer({ serverPath: temporaryServer });
     failureServer = started.child;
 
-    // The isolated server's allowlisted wallet path intentionally has no file.
-    const response = await fetch(`${started.base}/wallet`);
+    // The isolated server's allowlisted stylesheet has no file to read.
+    const response = await fetch(`${started.base}/styles.css`);
     assert.equal(response.status, 500);
     assert.match(response.headers.get("content-type"), /text\/plain/);
     assert.equal(await response.text(), "Could not read the application files.\n");
