@@ -168,7 +168,7 @@ test("mobile navigation is a local disclosure dropdown", async () => {
 test("token section presents the pinned canonical facts", async () => {
   const html = await (await fetch(`${base}/project-information`)).text();
 
-  assert.match(html, /href="\/project-information#token"/);
+  assert.match(html, /href="\/project-information"/);
   assert.match(html, /Solana Mainnet/);
   assert.match(html, /Classic SPL Token/);
   assert.match(html, /<dt>Token name<\/dt>\s*<dd>UnitedSOLANA<\/dd>/);
@@ -274,10 +274,10 @@ test("project information page is served with its three section anchors", async 
   assert.doesNotMatch(html, /id="risks?"/);
 
   // Section destinations required by the approved navigation.
-  assert.match(html, /<a href="\/project-information#token">Token<\/a>/);
+  assert.match(html, /<a href="\/project-information">Token<\/a>/);
   assert.match(html, /<a href="\/project-information#principles">Principles<\/a>/);
   assert.match(html, /<a href="\/project-information#transparency">Transparency<\/a>/);
-  assert.match(html, /<a href="\/#overview">Overview<\/a>/);
+  assert.match(html, /<a href="\/">Overview<\/a>/);
 
   // The risks section and its links were removed from the site.
   assert.doesNotMatch(html, /#risks?["<]/);
