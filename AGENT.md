@@ -91,11 +91,11 @@ Wallet connection, balance retrieval and swap execution are separate capabilitie
 
 6. Current implementation and approved work
 
-The current homepage and wallet functionality are implemented in "web/". The homepage includes the overview, token facts, principles, transparency and risk content, plus the wallet panel. The separate Project Information page and navigation reorganization are not yet implemented.
+The current homepage and wallet functionality are implemented in "web/". The homepage contains the Overview section and the wallet panel. A dedicated Project Information page at "/project-information" holds the Token, Principles, and Transparency sections. The dedicated Risks section was removed from the website at owner instruction, including its navigation entry and links.
 
 Verified wallet capabilities include Solana Wallet Standard discovery, injected Phantom and Solflare fallbacks, user-initiated connection/disconnection, account-change handling, read-only SOL/USOL balances, and the restricted server-side RPC proxy. See "agent/HANDOVER.md" for evidence, exact test results, and what remains untested. Do not describe real-wallet/device testing or live RPC verification as completed without performing it.
 
-Owner-approved next website task: create a dedicated Project Information page and move detailed Token, Principles, Transparency, and Risks content there, keeping Overview on the homepage. The approved section anchors and navigation destinations are specified in "agent/HANDOVER.md" and "agent/WEBSITE_ARCHITECTURE.md". Preserve design, responsiveness, accessibility, and existing wallet behavior. Implement on a separate feature branch based on the approved updated development baseline.
+Owner-approved and implemented on feature branch "feat/project-information-page": a dedicated Project Information page at "/project-information" holding the Token, Principles, and Transparency content, with Overview kept on the homepage and the wallet panel unchanged. A later owner correction removed the dedicated Risks section from the website (content, navigation entry, and links). The section anchors and navigation destinations are recorded in "agent/HANDOVER.md" and "agent/WEBSITE_ARCHITECTURE.md". Note the open question in "agent/HANDOVER.md": section 7 of this file still calls for appropriate risk disclosures, which now exist only as general wording in the footer and section copy. Confirm with the owner before adding a risk section back.
 
 Wallet transactions, signing, swaps, transfers, payments, and further ecosystem features remain unapproved unless the owner explicitly approves them separately. Do not infer approval from this navigation task.
 

@@ -30,10 +30,16 @@ const CONTENT_TYPES = {
 };
 
 const INDEX_PAGE = path.join(WEB_ROOT, "index.html");
+const PROJECT_INFORMATION_PAGE = path.join(WEB_ROOT, "project-information.html");
 
+// Explicit allowlist: only these paths are served. The Project Information page
+// owns its own document so direct links, refreshes and browser history work
+// without client-side routing; its #section anchors are resolved by the browser
+// and never reach this server.
 const ROUTES = {
   "/": INDEX_PAGE,
   "/index.html": INDEX_PAGE,
+  "/project-information": PROJECT_INFORMATION_PAGE,
   "/styles.css": path.join(WEB_ROOT, "styles.css"),
   "/theme.css": path.join(WEB_ROOT, "theme.css"),
   "/wallet-core.js": path.join(WEB_ROOT, "wallet-core.js"),
