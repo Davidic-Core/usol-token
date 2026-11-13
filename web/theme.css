@@ -1,0 +1,65 @@
+
+/* Theme overrides for the public homepage. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #060b14;
+  --surface-raised: #0d1524;
+  --ink: #e8effc;
+  --ink-soft: #c4d0e5;
+  --muted: #93a4c2;
+  --line: #25344b;
+  --line-strong: #38506d;
+  --shadow-soft: 0 24px 70px -38px rgba(0, 0, 0, 0.75);
+}
+
+:root[data-theme="dark"] .site-header {
+  border-bottom-color: rgba(56, 80, 109, 0.72);
+  background: rgba(6, 11, 20, 0.86);
+}
+
+:root[data-theme="dark"] .brand__symbol,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .wallet-account,
+:root[data-theme="dark"] .wallet-selector {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .wallet-selector::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+:root[data-theme="dark"] .wallet-selector__head,
+:root[data-theme="dark"] .wallet-option-row,
+:root[data-theme="dark"] .wallet-balances {
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .wallet-option:hover,
+:root[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+.theme-toggle {
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.55rem;
+  background: var(--surface-raised);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.theme-toggle:hover {
+  background: rgba(79, 70, 229, 0.06);
+  color: var(--indigo);
+}
+
+@media (max-width: 760px) {
+  .theme-toggle {
+    flex: 1;
+  }
+}
