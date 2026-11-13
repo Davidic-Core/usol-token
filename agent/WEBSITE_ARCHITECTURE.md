@@ -49,7 +49,7 @@ The existing project includes:
 
 Inspect the actual branch before relying on this list as a complete inventory.
 
-The homepage currently contains overview and detailed project-information sections, together with the wallet panel: Wallet Standard discovery, Phantom/Solflare injected fallbacks, connect/disconnect, account switching, and read-only SOL/USOL balances.
+The homepage (`/`) contains the Overview section and the existing wallet panel: Wallet Standard discovery, Phantom/Solflare injected fallbacks, connect/disconnect, account switching, and read-only SOL/USOL balances. The separate Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website.
 
 The homepage must not be assumed to contain swap functionality.
 
@@ -119,16 +119,14 @@ Keep the current entry points and server behavior intact unless an approved chan
 
 7. Current website content and homepage structure
 
-Recommended mobile-first homepage sections:
+Current mobile-first website structure:
 
-1. Header: official logo, UnitedSOLANA identity, accessible navigation.
-2. Hero: concise and factual project introduction.
-3. Project overview: verified project purpose and status.
-4. Token information: network, name, symbol, canonical mint, decimals, and recorded supply.
-5. Verification resources: confirmed explorer and official links.
-6. Wallet entry point: approved wallet connection functionality when the relevant phase permits it.
-7. Transparency and risk wording: appropriate cryptocurrency risk wording. The dedicated Risks section was removed from the website at owner instruction; see section 8.
-8. Footer: approved project information and verified links.
+1. Shared header: official logo, UnitedSOLANA identity, and accessible navigation.
+2. Homepage (`/`): Overview section and existing wallet panel.
+3. Project Information page (`/project-information`): Token, Principles, and Transparency sections.
+4. Shared footer: approved project information and verified links.
+
+The dedicated Risks section has been removed from the website. Do not reintroduce it as a page section or navigation destination.
 
 Do not invent missing information or use placeholders that could be mistaken for factual claims.
 

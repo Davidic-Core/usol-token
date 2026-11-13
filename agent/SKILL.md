@@ -116,7 +116,7 @@ Approval gate
 
 6. Current project status
 
-The current homepage includes Overview, Token, Principles, Transparency, and Risk content, plus Wallet Standard-based discovery, Phantom and Solflare injected fallbacks, connection and disconnection, account-change handling, read-only SOL/USOL balances, and a restricted server-side RPC proxy. See "agent/HANDOVER.md" for code references, exact test results, and manual/live checks that remain unverified.
+The homepage (`/`) contains the Overview section and the existing wallet panel, which supports Wallet Standard-based discovery, Phantom and Solflare injected fallbacks, connection and disconnection, account-change handling, read-only SOL/USOL balances, and a restricted server-side RPC proxy. The Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website. See "agent/HANDOVER.md" for code references, exact test results, and manual/live checks that remain unverified.
 
 The owner-approved Project Information page is implemented on the feature branch `feat/project-information-page` (Base44 working branch `project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`). The page at `/project-information` contains three sections — Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`) — while Overview stays on the homepage. The dedicated Risks section was removed from the website at owner instruction, along with its navigation entry and links. Navigation destinations, section anchors, and browser-history behavior are documented in "agent/WEBSITE_ARCHITECTURE.md" section 8 and "agent/HANDOVER.md".
 
