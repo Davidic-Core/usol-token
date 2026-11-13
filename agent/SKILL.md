@@ -1,116 +1,239 @@
-# UnitedSOLANA (USOL) Website Development Operating Manual
+UnitedSOLANA (USOL) Website Development Operating Manual
 
-## 1. Authority, purpose, and scope
+1. Authority, purpose, and scope
 
-This manual guides any AI agent assigned to plan or develop the UnitedSOLANA (USOL) website, including Base44 Agent. It is written to be usable without prior conversation history.
+This manual guides AI agents assigned to plan, review, document, or develop the UnitedSOLANA (USOL) website. It is written to be usable without prior conversation history.
 
-The website's purpose is to be the official, clear, accessible source of information about the existing UnitedSOLANA project and, over time, a carefully governed entry point to approved ecosystem experiences. Its long-term vision is a trustworthy, mobile-first website that can grow in independently reviewed phases. Growth is not automatic authorization to add functionality.
+The website's purpose is to provide an official, clear, accessible source of information about the existing UnitedSOLANA project and, over time, a carefully governed entry point to approved ecosystem experiences.
 
-The root [`AGENT.md`](../AGENT.md) is the highest-authority project instruction. Read it first and follow it at all times. This manual and [`WEBSITE_ARCHITECTURE.md`](WEBSITE_ARCHITECTURE.md) are subordinate. If an instruction, feature, or implementation conflicts with the root rules, stop, describe the conflict, and request direction; do not weaken or silently override the root rules. Do not edit the root `AGENT.md` to make a feature possible.
+Growth is not automatic authorization to add functionality.
 
-This repository is also the home of token verification/deployment records and CLI tooling. The website must remain isolated under `web/`; never change token configuration, deployment history, verification tooling, or retired token utilities to accommodate a website feature.
+The root ""AGENT.md"" (../AGENT.md) is the highest-authority project instruction. Read it first and follow it at all times. This manual and ""WEBSITE_ARCHITECTURE.md"" (WEBSITE_ARCHITECTURE.md) are subordinate. If an instruction, feature, or implementation conflicts with the root rules, stop, describe the conflict, and request direction.
 
-## 2. Roles and responsibilities
+This repository also contains token verification/deployment records and CLI tooling. The website must remain isolated under "web/". Never change token configuration, deployment history, verification tooling, or retired token utilities to accommodate a website feature.
 
-### Website development agent
+2. Repository ownership and development tools
 
-The agent (including Base44 Agent when assigned implementation) is responsible for the phase explicitly authorized by the user: inspect the actual project, explain its understanding and plan, implement only the approved scope, test it, and report results and remaining work. It must preserve existing work, follow project documentation, and stop at every approval gate.
+Repository ownership
 
-### Base44 Agent
+- Canonical upstream: "Snr-Dave/usol-token"
+- Verified working repository: "davidcloud001/usol-token", a fork of "Snr-Dave/usol-token".
+- The GitHub default branch observed on 2026-11-13 is "feat/usol-wallet-theme".
+- Verify current remotes and branch for each task; do not rely on outdated names or assume an integration branch.
 
-Base44 Agent is the primary agent for website planning, design, and implementation when the user assigns it those tasks. It must follow the same repository instructions and phase approvals as any other developer. It must not assume it can access GitHub files. Before claiming to have read a file, it must either obtain the file contents from the user or use a verified GitHub integration to retrieve the exact repository and branch contents. If neither is available, request the needed documents or access and state what remains unread. Do not present an assumption as repository inspection.
+GitHub is the source of truth for repository files, branches, commits, reviews, and approved changes. Never assume that changes in a working fork have reached the canonical upstream.
 
-### GitHub Copilot
+Development tools and responsibilities
 
-GitHub Copilot is the documentation and repository-assistance agent. It can inspect repository files, explain architecture, help refine plans, and make user-authorized documentation or repository changes. It is not the independent primary website builder and must not independently build or rebuild the website. It must not infer authorization to code, install dependencies, or change website files from a request to document or plan. It must respect the user's authorized file scope and publishing instructions.
+- GitHub Copilot is used for project documentation and agent-instruction maintenance.
+- Base44 is currently used for website implementation. Implementation must use a separate feature branch based on the approved updated development baseline.
+- Review changes before merging or deployment; obtain owner approval before either action.
+- Older references to v0, Vercel, or Acode are historical unless independently verified as current. Do not assume hosting or preview deployment is configured.
 
-### User and GitHub
+3. Mandatory cold-start workflow
 
-The user owns scope decisions and phase approvals. GitHub is the source-control record for approved documentation and code. A commit, push, merge, or deployment is not implied by approval to implement; obtain explicit authorization for the relevant publishing action. Do not merge to a protected/default branch or deploy unless explicitly approved.
+At the beginning of every new assignment, without relying on prior conversation history:
 
-## 3. Mandatory cold-start workflow
+1. Read the root "AGENT.md" completely.
+2. Read "agent/SKILL.md" completely.
+3. Read "agent/WEBSITE_ARCHITECTURE.md" completely.
+4. Read "agent/HANDOVER.md" completely.
+5. Inspect the repository structure and relevant website files under "web/".
+6. Identify the current branch, repository, project phase, and verified implementation status.
+7. Identify the exact scope and authorization provided by the user.
+8. Report your understanding, proposed actions, affected files, tests, and risks.
+9. Work only within the approved scope.
+10. Review the final changes and report actual results.
+11. Stop at the approval gate and wait for further authorization.
 
-At the beginning of every new assignment, with no reliance on prior conversation context:
+The handover records current project status, known limitations, verified commits and branches, test results, and the next recommended starting point. It must not contradict root instructions.
 
-1. Read the root `AGENT.md` first.
-2. Read `agent/SKILL.md`.
-3. Read `agent/WEBSITE_ARCHITECTURE.md`, then `agent/HANDOVER.md`. The handover is the authoritative record of the current phase status, verified commit and branch, actual test results, known limitations, and the exact point where work resumes. Read it before proposing any work; if it conflicts with the root rules or `SKILL.md`, those documents win.
-4. Inspect the repository structure and existing website files under `web/`; read existing files before proposing replacements or moves.
-5. Identify the current phase, its written objectives, accepted deliverables, and any explicit authorization from the user. If the phase or scope is unclear, ask before implementation.
-6. Report your understanding of the instructions, current state, proposed actions, affected files, tests, and risks. State any documents you could not verify access to.
-7. Work only on the phase and files explicitly authorized by the user. A roadmap is not approval for all roadmap items.
-8. Implement and test only that phase, preserving unrelated files and existing tests.
-9. Report completed work, exact changed files, actual test commands and results, outstanding items, and security considerations.
-10. Stop. Wait for explicit user approval before planning or starting the next phase.
+If a required file cannot be retrieved completely, report the limitation. Do not claim to have read or reviewed a complete file when only partial or elided content was available.
 
-At the start of a phase, the user-facing plan must identify objective, in-scope/out-of-scope features, deliverables, files likely to change, test plan, dependencies, risks, and any root-instruction conflict. Do not begin implementation until the user approves that phase. Approval to implement does not authorize commit, push, merge, publication, or deployment unless those actions are explicitly included.
+Before implementation, the user-facing plan must identify the objective, in-scope and out-of-scope features, deliverables, likely affected files, test plan, dependencies, risks, and any root-instruction conflict.
 
-## 4. Phase planning, implementation, testing, and review
+A roadmap is not authorization to implement every roadmap item.
 
-Every phase follows this controlled cycle:
+4. Roles and responsibilities
 
-- **Plan:** State the phase objective and measurable acceptance criteria. Inspect relevant files and current behavior. Identify scope boundaries, security/privacy implications, dependencies, migration or compatibility concerns, and tests. Ask for approval.
-- **Implement:** After approval, make the smallest coherent changes within authorized paths. Do not silently add features, dependencies, analytics, backend services, or external integrations. Do not overwrite or delete existing files without inspection and explicit scope. Prefer additive changes and preserve existing behavior unless replacement is approved.
-- **Test:** Run suitable checks actually available in the repository. Keep the existing offline test suite intact and independent of live blockchain services. Never use real transactions as tests. Do not claim checks passed unless they were run; distinguish unavailable tests from failures and from manual review.
-- **Review:** Compare results against phase acceptance criteria, inspect the final diff for scope creep, secrets, accidental token/tool changes, accessibility, and regressions. Report files, behavior, test results, limitations, and outstanding tasks.
-- **Approval gate:** Stop and wait for the user to accept the phase and authorize the next one. Do not treat silence, a roadmap entry, or a request for a status report as approval.
+Website development agent
 
-## 5. Phases and scope gates
+The assigned website development agent is responsible for inspecting the actual repository, understanding the approved scope, proposing a plan, implementing only authorized work, testing it, reviewing the diff, and reporting results.
 
-Use `agent/WEBSITE_ARCHITECTURE.md` §18 as the detailed proposal and acceptance checklist. Phase numbers below match that section; do not renumber them in new documents.
+The agent must preserve existing work and stop at approval gates.
 
-Status of this sequence: Phase 0, Phase 1, and Phase 2 are complete. Phase 3 is approved as a **Phantom-only, connection-only** increment and is implemented in the working tree, pending owner review; it is not committed. Solflare, Backpack, and other wallet integrations are deferred to a future, separately approved increment. See `agent/HANDOVER.md` for the verified state.
+Website implementation agent
 
-- **Phase 0 — Discovery and architecture/design:** Inspect current implementation; agree on mission, branding, page structure, technology and design. Deliver plans or mockups only unless implementation is separately authorized.
-- **Phase 1 — Public website foundation:** Build or refine approved responsive public pages and navigation, using verified project information and approved assets. No wallet-dependent feature is implied by this phase.
-- **Phase 2 — Verified token information:** Present only canonical or verifiably sourced facts with clear distinctions between fixed deployment facts and live/external market data. No fabricated prices, liquidity, volume, listings, partnerships, or utility.
-- **Phase 3 — Connection-only Phantom support (approved):** Provide Phantom detection, user-initiated connect/disconnect, a validated public address and connection status, and understandable missing-provider, embedded-frame, rejection, and provider-error states, with mobile/in-app-browser guidance. Solflare, Backpack, and other Wallet Standard wallets are **deferred** to a future, separately approved increment; do not describe this phase as multi-wallet. This phase is strictly connection-only: no signing, transfers, swaps, payments, balance display, or transaction submission unless a later user-approved phase is consistent with the root `AGENT.md`. Connecting is not transaction authorization.
-- **Phase 4 — Future integrations, each separately proposed:** A distinct proposal and approval are required for any feature outside the connection-only scope. Root `AGENT.md` controls what is allowed. A user request cannot authorize violating its prohibitions. Never request or expose a private key or seed phrase, use project-owned signing keys, or change token authorities.
-- **Phase 5 — Ecosystem content and expansion:** Verify and source every resource or update; no implied partnerships, fabricated utilities, or unapproved data collection.
-- **Phase 6 — Optimization and launch readiness:** Each feature, external service, and launch/deployment action needs its own defined scope and approval. No payments, staking, rewards, smart contracts, analytics, or production deployment is implied by this phase label.
+Base44 is currently used for approved website implementation. Any implementation agent or developer must inspect the actual repository and relevant files, follow "AGENT.md", this manual, "WEBSITE_ARCHITECTURE.md", and "HANDOVER.md", confirm the current repository and branch, work on a separate feature branch based on the approved updated development baseline, preserve the static architecture unless migration is separately approved, protect token tooling, and implement only the approved scope.
 
-A phase may be split into smaller user-approved increments. Do not combine phases to avoid review gates.
+"agent/V0_INSTRUCTIONS.md" retains useful implementation and security rules from the earlier v0 workflow. It is not a requirement to use v0; read it as general website implementation guidance, including when using Base44 or another owner-approved workflow.
 
-## 6. Website organization and repository safety
+GitHub Copilot
 
-All website implementation source and website-specific assets belong under `web/`, consistent with root `AGENT.md`. The current `web/` is a small, dependency-free static application: a public homepage (`index.html`, `styles.css`, `server.js`) with the Phase Two token information section and two progressive-enhancement scripts (`nav.js` for the mobile disclosure menu, `token.js` for the mint copy control), plus the Phantom connect page served at `/wallet` (`wallet.html`, `wallet.css`, `wallet-core.js`, `app.js`, and `web/tests/wallet.test.js`). See `agent/HANDOVER.md` for the current phase status, verified commit, test results, and next starting point. Inspect these files before proposing changes. The homepage carries no wallet functionality, and the `/wallet` page remains unlinked and `noindex`; do not assume either is safe to replace, and do not treat the Phantom-only page as satisfying the deferred multi-wallet increment.
+Copilot is used for project documentation and agent-instruction maintenance. It must not independently implement website changes or expand a documentation-only task into code changes.
 
-Use the architecture document's proposed structure as a target only, not a directive to restructure immediately. Preserve the current entry points and local server behavior until an approved migration plan exists. Keep website code and configuration separate from root token scripts, `config/`, `deployments/`, and verification tests. Avoid unrelated root `package.json` changes; do not add dependencies without an approved justification and security review. Do not move or duplicate the official logo without checking its source and serving path.
+User
 
-Before editing, inspect the target file and nearby references. Use narrow, reviewable edits; check the diff for overwrites and unrelated changes. Never edit files outside the user's authorized file list. Never put secrets, private keys, seed phrases, access tokens, or credentials in source, documentation, examples, browser storage, logs, or commits. Do not install dependencies unless explicitly approved for that phase.
+The user owns project decisions, feature scope, phase approvals, and publishing authorization.
 
-## 7. Initial wallet scope and security boundaries
+No agent may infer approval from a roadmap, previous phase, or silence.
 
-The approved Phase 3 wallet functionality is **Phantom-only and connection-only**. It includes:
+5. Phase planning and approval cycle
 
-- Detecting Phantom through its documented provider (`window.phantom.solana`, with legacy `window.solana` as documented), including late provider injection in mobile in-app browsers.
-- Connecting and disconnecting at the user's explicit direction.
-- Showing the connected wallet's validated public address and connection status.
-- Handling missing providers, embedded frames, user rejection, timeouts, account changes, and documented Phantom provider errors, with mobile/in-app-browser guidance.
-- Directing a mobile visitor without an injected provider to Phantom's documented Browse deep link (`https://phantom.com/ul/browse/<url>?ref=<ref>`).
+Every phase follows this cycle:
 
-Solflare, Backpack, Wallet Standard discovery, and any other wallet integration are **deferred** to a future, separately approved increment and are not part of Phase 3.
+Plan
 
-It excludes transaction signing, message signing, token transfers, swaps, wallet-based payments, balance display, and other transaction submission. Do not add these capabilities under the description of connection support. Do not request, collect, store, or transmit private keys or seed phrases. Do not equate connection or public-address access with permission to transact. The approved Phantom-only increment needs no wallet library because Phantom injects its provider; any library or adapter for the deferred multi-wallet increment requires separate approval and a trust-boundary review.
+- Inspect existing implementation and current behavior.
+- Define objective and measurable acceptance criteria.
+- Identify affected files, dependencies, security/privacy implications, and tests.
+- Request approval.
 
-All security, factual accuracy, testing, and read-only tooling restrictions in root `AGENT.md` apply. Keep tests offline where possible; mock wallet providers and never execute a real blockchain transaction in automated tests.
+Implement
 
-## 8. Documentation and handoff requirements
+- Start only after approval.
+- Make the smallest coherent changes within authorized paths.
+- Do not silently add features, dependencies, analytics, backend services, or external integrations.
+- Preserve existing functionality.
 
-Keep project documentation useful to a new agent. When a phase is completed, update only documentation files authorized by the user and record:
+Test
 
-- Phase name and status (planned, approved, in progress, complete, blocked).
-- Objective and acceptance criteria, including which were met or not met.
-- Actual files changed and a concise change summary.
-- Commands run and exact outcomes; note tests not run and why.
-- Decisions, assumptions, verified sources, and unresolved questions.
-- Security/privacy review and any external integrations.
-- Outstanding work, known limitations, and the next proposed phase, clearly marked as not authorized.
+- Run suitable checks actually available in the repository.
+- Keep offline tests independent of live blockchain services.
+- Never use real transactions as tests.
+- Distinguish test failures, tests not run, and manual review.
 
-Do not claim project approval, external verification, wallet compatibility, or deployment success without evidence. Keep token facts aligned with root `AGENT.md`; if canonical data seems inconsistent, stop and request clarification rather than correcting token records from the website task.
+Review
 
-## 9. Publishing and completion report
+- Inspect the complete diff.
+- Check for scope creep, secrets, accidental protected-file changes, accessibility issues, and regressions.
+- Compare results with acceptance criteria.
 
-After approved implementation, provide a concise but complete report of objective, scope, files changed, behavior delivered, tests actually run and results, outstanding issues, root-rule conflicts, and whether any live blockchain access or transaction occurred. State clearly that no transaction occurred when applicable. Ask before committing/pushing/merging/deploying unless explicitly authorized. When a documentation-only or code commit is authorized, limit it to the exact approved files and branch; do not merge unless separately approved.
+Approval gate
 
-This manual does not override or relax root `AGENT.md`. If requirements conflict, root `AGENT.md` wins and the agent must stop and report the conflict.
+- Report the work and wait for the user's decision.
+- Do not begin the next phase without explicit authorization.
+
+6. Current project status
+
+The homepage (`/`) contains the Overview section and the existing wallet panel, which supports Wallet Standard-based discovery, Phantom and Solflare injected fallbacks, connection and disconnection, account-change handling, read-only SOL/USOL balances, and a restricted server-side RPC proxy. The Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website. See "agent/HANDOVER.md" for code references, exact test results, and manual/live checks that remain unverified.
+
+The owner-approved Project Information page is implemented on the feature branch `feat/project-information-page` (Base44 working branch `project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`). The page at `/project-information` contains three sections — Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`) — while Overview stays on the homepage. The dedicated Risks section was removed from the website at owner instruction, along with its navigation entry and links. Navigation destinations, section anchors, and browser-history behavior are documented in "agent/WEBSITE_ARCHITECTURE.md" section 8 and "agent/HANDOVER.md".
+
+Signing, transactions, swaps, transfers, payments, and other features remain unapproved unless separately authorized. Do not treat the page/navigation task as approval for them.
+
+7. Website architecture and repository safety
+
+All website source code and website-specific assets must remain under "web/".
+
+The existing website is a static, dependency-free vanilla HTML/CSS/JavaScript application.
+
+Preserve this architecture unless the user separately approves a migration proposal.
+
+The existing public homepage contains the wallet connection panel and read-only SOL/USOL balances, served through the local `POST /api/rpc` proxy. Inspect it before modification. Do not assume the homepage contains swap functionality.
+
+Keep website code and configuration separate from:
+
+- Root token scripts.
+- "config/".
+- "deployments/".
+- Token verification tooling.
+- Retired token utilities.
+
+Do not replace the root "package.json" purpose or introduce a second frontend toolchain without approval.
+
+Before editing, inspect the target file and its references. Use narrow, reviewable changes. Never edit files outside the authorized scope.
+
+Never commit credentials, seed phrases, private keys, access tokens, or other secrets.
+
+8. Wallet functionality and security boundaries
+
+The current website supports Solana Wallet Standard discovery, injected Phantom and Solflare fallbacks, user-initiated connection and disconnection, validated public address display, account-change handling, and read-only SOL/USOL balances through a restricted server-side RPC proxy. See "agent/HANDOVER.md" for code references, exact automated test results, and manual/live testing that remains unverified.
+
+Other compatible Wallet Standard Solana wallets may be discovered. Do not claim a provider's real-world compatibility without testing. No Backpack-specific integration is present in the inspected code.
+
+The current wallet flow does not sign messages or transactions, transfer tokens, execute swaps, or process payments. Any such capability requires a separate proposal, technical/security review, and explicit approval consistent with root "AGENT.md".
+
+Never request, collect, store, or transmit seed phrases or private keys. Never sign using project-owned private keys or add server-side signing.
+
+Connecting a wallet does not authorize a transaction.
+
+9. Accuracy, transparency, and privacy
+
+Never invent token prices, market capitalization, trading volume, liquidity, exchange listings, partnerships, audits, or project utilities.
+
+Clearly distinguish pinned project facts, live on-chain information, third-party market information, and estimates.
+
+When displaying external or live data, identify its source and last-checked time where appropriate.
+
+Do not promise returns or present estimates as guaranteed outcomes.
+
+Minimize collection of personal data. Do not transmit wallet addresses to analytics or unrelated services without a separately approved privacy design.
+
+10. Testing and verification
+
+Preserve existing repository tests and configuration.
+
+Keep offline tests independent of live blockchain services. Add website-specific tests where appropriate.
+
+Never perform real transactions in automated tests.
+
+For website changes, testing may include:
+
+- Existing offline regression tests.
+- Website server and route tests.
+- Responsive mobile and desktop checks.
+- Keyboard navigation and visible focus.
+- Link and navigation checks.
+- Browser console review.
+- Wallet-provider tests using mocks.
+- Security and dependency review.
+
+For changes to balance functionality, use read-only data retrieval and test unavailable RPC responses, missing token accounts, stale values, and errors.
+
+For any separately approved swap functionality, use mock or quote-only tests where possible. Never submit real transactions during automated tests.
+
+Do not claim a test passed unless it was executed. Do not claim live Mainnet verification based only on fixtures.
+
+11. GitHub, Copilot, and Base44 workflow
+
+1. Verify the current repository, remotes, branch, and worktree before editing.
+2. Use GitHub as the source of truth and GitHub Copilot for documentation and agent-instruction maintenance.
+3. Use Base44 for approved website implementation on a separate feature branch based on the approved updated development baseline.
+4. Review the complete diff and actual test results before merging or deployment.
+5. Obtain explicit owner approval before merge or deployment. Do not commit or push without explicit authorization.
+
+Do not assume an integration branch, preview environment, hosting provider, credentials, domain, or production deployment is configured. Verify current facts before use. A preview, if later configured and approved, is not production approval.
+
+12. Documentation and handover
+
+Keep documentation useful to a new agent without prior conversation history.
+
+Whenever an agent completes a significant task or hands work to another agent, it must update "agent/HANDOVER.md" with verified changes, current status, outstanding work, relevant branch information, and next steps. Keep the handover concise and useful, preserve earlier history, and do not claim unverified work as complete.
+
+Record actual files changed, test commands/results, decisions and verified sources, security/privacy review, limitations, unresolved questions, and next steps. Clearly distinguish approved work from proposals.
+
+Keep phase status consistent across "AGENT.md", "SKILL.md", "WEBSITE_ARCHITECTURE.md", "HANDOVER.md", and "README.md".
+
+Never invent commit hashes, test results, approvals, deployments, or external verification.
+
+13. Publishing and completion reports
+
+Do not commit, push, merge, publish, or deploy without explicit user approval.
+
+An explicit authorization to commit to a named branch permits that commit only. It does not authorize merging, pushing to another repository, or production deployment.
+
+After a development task, report:
+
+- Objective and approved scope.
+- Files created or modified.
+- Functionality implemented.
+- Actual test commands and results.
+- Remaining issues and security considerations.
+- Whether live verification was performed.
+- Whether any blockchain transaction occurred.
+- Commit, branch, and deployment details where applicable.
+
+If a required file cannot be read completely, stop and report the limitation.
+
+This manual does not override root "AGENT.md". If requirements conflict, root instructions win.

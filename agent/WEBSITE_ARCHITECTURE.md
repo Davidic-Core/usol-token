@@ -1,276 +1,373 @@
-# UnitedSOLANA Website Architecture and Design Proposal
+UnitedSOLANA Website Architecture and Design Proposal
 
-## 1. Document purpose and authority
+1. Document purpose and authority
 
-This document records the inspected starting point and a phased architecture proposal for the official UnitedSOLANA (USOL) website. It is intended for the user, Base44 Agent, GitHub Copilot, and future implementation agents. It is a plan, not authorization to implement every item in it.
+This document records the existing website architecture, design direction, technical constraints, and proposed development phases for the official UnitedSOLANA (USOL) website.
 
-The root [`AGENT.md`](../AGENT.md) is the highest-authority instruction. Read it before this document. The operating workflow is in [`SKILL.md`](SKILL.md). If this proposal conflicts with root rules, root rules win; stop and document the conflict. Do not modify root `AGENT.md` to bypass a restriction.
+It is a proposal and architecture reference, not authorization to implement every feature.
 
-**Inspected repository state (Phase 0 snapshot, kept as the historical starting point):** at inspection time `web/` contained `index.html`, `styles.css`, `app.js`, and `server.js`. Phases 1 and 2 have since been completed; the current files, verified commit, test results, and next starting point are recorded in [`HANDOVER.md`](HANDOVER.md), which supersedes this snapshot for current-state questions. At inspection the site was a minimal, dependency-free static Phantom connection page: it could connect/disconnect, display a public address, and provide mobile/embedded-browser guidance, and its server served an explicit allowlist of paths plus the repository-root logos. The website is still not a React application, and the root `package.json` remains token verification tooling rather than a website framework. The architecture below is a recommended direction; preserve this existing implementation until a phase is approved.
+The root ""AGENT.md"" (../AGENT.md) is the highest-authority project instruction. Read it first. The operating workflow is in ""SKILL.md"" (SKILL.md). The current project status and verified handover are recorded in ""HANDOVER.md"" (HANDOVER.md).
 
-## 2. Mission and long-term vision
+If this document conflicts with root instructions, root instructions win. Stop and report the conflict rather than weakening or bypassing a restriction.
 
-The initial mission is to provide an official, trustworthy, mobile-first public presence for the existing UnitedSOLANA project: explain verified information clearly, identify the canonical token, and provide safe navigation to official resources once those destinations are confirmed.
+2. Project mission and long-term vision
 
-The long-term vision is a well-maintained project website that can expand gradually into approved wallet and ecosystem experiences without coupling the public website to token deployment tooling. Each expansion must have a separate plan, explicit user approval, acceptance criteria, security review, and documented handoff. A future possibility is not a commitment or current feature.
+The initial mission is to provide an official, trustworthy, mobile-first public presence for the existing UnitedSOLANA project.
 
-## 3. Existing structure and constraints
+The website should:
 
-### Files at the Phase 0 inspection (historical)
+- Explain verified project information clearly.
+- Identify the canonical USOL token.
+- Provide safe navigation to confirmed official resources.
+- Offer accessible and reliable wallet experiences as separately approved phases.
+- Grow through independently reviewed improvements.
 
-The list below records what existed before implementation began. For the current file list after Phases 1 and 2, read [`HANDOVER.md`](HANDOVER.md).
+The long-term vision is a useful project website that can expand into approved wallet and ecosystem experiences without coupling website functionality to token deployment tooling.
 
-- `web/index.html` — at inspection: a single HTML page describing Phantom-only wallet connection; now the public homepage including the Phase Two token information section, with the wallet page moved to `web/wallet.html`.
-- `web/styles.css` — at inspection: dark responsive styles with gradient accents and focus-visible styling; now the light visual system used by the public homepage.
-- `web/app.js` — browser-side Phantom provider detection and connection/disconnection; it handles mobile and embedded contexts and does not sign, transfer, or make page network requests.
-- `web/server.js` — dependency-free Node HTTP static server with GET/HEAD-only handling and explicit routes. It serves website files and root `logo.svg` / `logo.png`.
-- Root `logo.svg` and `logo.png` are existing brand asset candidates; verify the files, quality, provenance, and official status before relying on or copying them.
+A future possibility is not a current feature or implementation commitment.
 
-Added during implementation: `web/wallet.html` and `web/wallet.css` (the preserved Phantom page split out of `index.html`), `web/nav.js` (mobile navigation disclosure), `web/token.js` (mint copy control), and `web/assets/brand/usol-logo.png` (served logo with its digest pinned in the tests). Both scripts are progressive enhancement only: no network, wallet, or transaction code.
+3. Repository ownership and architecture constraints
 
-### Repository constraints
+Verified working repository: "davidcloud001/usol-token", a fork of canonical upstream "Snr-Dave/usol-token". The current GitHub default branch observed on 2026-11-13 is "feat/usol-wallet-theme". Verify remotes and the current branch for each task; do not assume an integration branch. GitHub is the source of truth for approved repository changes.
 
-- This is a token verification/deployment repository as well as a website repository. Keep all website code and website-specific assets inside `web/`; do not alter deployment tooling, historical records, pinned token configuration, or retired utilities to support a site feature.
-- Root `package.json` currently has token tooling dependencies and a `start` script for `web/server.js`. Do not replace its purpose or add frontend framework dependencies without an approved migration proposal.
-- The current minimal website and its route allowlist must not be overwritten or expanded casually. Inspect behavior and references before edits; use additive, reviewed changes and test the server's intended route behavior if it changes.
-- Root instructions permit appropriate wallet connection/disconnection, but that does not authorize transactions. For this plan, the initial wallet feature is limited further to connection-only. Do not implement transaction capabilities unless separately proposed and approved and allowed by root instructions.
+Existing architecture
 
-## 4. Recommended architecture and technology
+The current website is a static, dependency-free vanilla HTML/CSS/JavaScript application under "web/".
 
-### Initial recommendation
+The existing project includes:
 
-Start with a small, static, mobile-first site in `web/`, extending the existing HTML/CSS/JavaScript implementation incrementally. This suits the current repository and avoids installing or configuring a second toolchain for informational pages. Keep browser-facing code isolated from the root Node token scripts. Do not introduce a backend, database, account system, or server-side wallet handling for the initial site; no such service is currently required by the approved initial scope.
+- "web/index.html" — public homepage.
+- "web/styles.css" — homepage styles.
+- "web/server.js" — dependency-free static server.
+- "web/nav.js" — mobile navigation enhancement.
+- "web/token.js" — token mint copy functionality.
+- "web/wallet-core.js" — wallet-related helper logic and balance formatting.
+- "web/wallet-discovery.js" — Solana Wallet Standard discovery.
+- "web/wallet-home.js" — homepage wallet panel (connect, disconnect, account switching, read-only balances).
+- "web/assets/brand/usol-logo.png" — website logo asset.
+- "web/tests/" — website-specific tests.
 
-If the user later approves a richer application and React/TypeScript is justified, propose a contained frontend build under `web/` (for example Vite + React + TypeScript), with its own scripts/configuration and output directory. First document how it coexists with `web/server.js`, the root `start` command, static hosting, tests, dependencies, and deployment. Do not migrate by replacing files or changing root package scripts without approval. Use maintained, supported syntax and libraries; minimize dependencies.
+Inspect the actual branch before relying on this list as a complete inventory.
 
-Use semantic HTML, CSS custom properties/design tokens, and small focused modules/components. Keep public token information in a clearly identifiable data module only if the implementation warrants it; source canonical facts from root instructions and verify dynamic facts at their stated source and time. No secrets belong in a browser bundle or repository.
+The homepage (`/`) contains the Overview section and the existing wallet panel: Wallet Standard discovery, Phantom/Solflare injected fallbacks, connect/disconnect, account switching, and read-only SOL/USOL balances. The separate Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website.
 
-## 5. Proposed directory and file structure
+The homepage must not be assumed to contain swap functionality.
 
-The proposed end-state is illustrative. Adopt it incrementally and only within approved phases; do not create empty scaffolding or move current files merely to match the diagram.
+Balance reads go through the site's own server-side proxy, `POST /api/rpc`, which accepts only `getBalance` and `getTokenAccountsByOwner`. The upstream Mainnet endpoint is set with the server-side `SOLANA_RPC_URL` or `HELIUS_API_KEY` environment variable; the key is never served to the browser.
 
-```text
+Repository constraints
+
+- All website source and website-specific assets belong under "web/".
+- Do not modify token deployment scripts, protected configuration, historical deployment records, or verification tooling for website features.
+- Root "package.json" remains associated with existing token tooling and the website start command.
+- Do not replace the existing architecture with React, TypeScript, or another framework without a separately approved migration proposal.
+- Do not add dependencies without justification, approval, and security review.
+
+4. Development tools and workflow
+
+- GitHub is the source of truth for repository files, branches, reviews, and approved changes.
+- GitHub Copilot is used for project documentation and agent-instruction maintenance.
+- Base44 is currently used for approved website implementation. Implementation takes place on a separate feature branch based on the approved updated development baseline.
+- Review changes before merging or deployment; obtain owner approval before either action.
+- Older references to v0, Vercel, or Acode are historical unless independently verified as current. Do not assume hosting or preview deployment is configured.
+
+5. Recommended technology
+
+Continue with the existing static HTML/CSS/JavaScript architecture for the current website.
+
+This approach:
+
+- Preserves the existing implementation.
+- Avoids unnecessary dependencies.
+- Keeps the website separate from token tooling.
+- Supports straightforward static hosting.
+- Minimizes deployment and maintenance complexity.
+
+A future React/TypeScript migration may be considered only through a separate proposal that explains:
+
+- Why the existing architecture is insufficient.
+- Required dependencies and security implications.
+- How the migration coexists with "web/server.js".
+- How root scripts and existing tests remain protected.
+- How preview and production hosting will work.
+- How rollback will be performed.
+
+Do not create empty scaffolding or migrate files simply to match a proposed architecture diagram.
+
+6. Illustrative future directory structure
+
+The following is an optional future structure, not an instruction to restructure the existing application.
+
 web/
-├── index.html                 # app entry/document metadata
-├── app.js                     # current entry point; may later become a small bootstrap
-├── styles.css                 # current styles; may later import organized styles
-├── server.js                  # existing local/static server; preserve unless approved
+├── index.html
+├── app.js
+├── styles.css
+├── server.js
 ├── assets/
-│   ├── brand/                 # approved copies/variants only, with source recorded
-│   └── icons/                 # optimized local UI icons
-├── pages/                     # approved public page templates/routes if needed
-├── components/                # shared navigation, footer, cards, status UI
+│   ├── brand/
+│   └── icons/
+├── pages/
+├── components/
 ├── data/
-│   └── token.ts|js            # verified display facts only; no invented market metrics
 ├── styles/
-│   ├── tokens.css             # colors, spacing, typography, focus tokens
-│   └── components.css         # optional component styles
-├── wallet/                    # future, approved connection-only wallet adapter/UI
-├── tests/                     # website tests and mocks, separate from root token tests
-├── package.json               # only if separately approved and isolated
-└── vite.config.ts             # only if a React/TypeScript migration is approved
-```
+├── wallet/
+└── tests/
 
-A browser-compatible extension choice such as `token.ts|js` means select one appropriate to the approved stack, not create both. For the existing vanilla application, avoid introducing a TypeScript compilation step without an approved build plan. Keep current root `test/` and token scripts untouched. If static routes are added, update only approved website routing and verify no traversal or unintended file-serving behavior is introduced.
+Adopt additional folders only when justified by an approved implementation phase.
 
-## 6. Initial website scope and future features
+Keep the current entry points and server behavior intact unless an approved change requires otherwise.
 
-### Planned for the initial public website (subject to phase approval)
+7. Current website content and homepage structure
 
-- Responsive official homepage with project introduction based only on approved facts.
-- Clear site navigation and footer, including risk/accuracy disclosures appropriate to displayed content.
-- Token information displaying canonical, verified facts and a copyable mint only if approved and tested for accessibility/usability.
-- Official logo/brand usage after verifying the existing asset and appropriate variants.
-- Known official links only after their destinations are confirmed.
-- A clearly labeled wallet connection entry point only after the approved scope permits linking it from public pages; the current `/wallet` page stays unlinked and `noindex`. That feature remains strictly connection-only as specified below.
+Current mobile-first website structure:
 
-### Future features requiring separate proposal and approval
+1. Shared header: official logo, UnitedSOLANA identity, and accessible navigation.
+2. Homepage (`/`): Overview section and existing wallet panel.
+3. Project Information page (`/project-information`): Token, Principles, and Transparency sections.
+4. Shared footer: approved project information and verified links.
 
-- Multi-wallet expansion (deferred): Solflare, Backpack, and other Wallet Standard wallets, plus wallet discovery and selection across them. The approved Phase 3 increment is **Phantom-only** and does not include these.
-- Dynamic on-chain information, any external market-data integration, ecosystem pages, announcements, or additional content sources.
-- Wallet balances, token holdings, transaction signing, transfers, swaps, payments, staking, rewards, smart-contract interactions, accounts, chat, analytics, or other integrations. These are not part of the initial wallet implementation. Each requires distinct approval, a technical/security plan, and review against root `AGENT.md`. Some may be prohibited or require further policy changes; no feature may bypass root rules.
-- React/TypeScript migration, backend services, database, or content-management system.
-- Production hosting, custom domain, deployment, or third-party services.
+The dedicated Risks section has been removed from the website. Do not reintroduce it as a page section or navigation destination.
 
-### Prohibited by root project instructions
+Do not invent missing information or use placeholders that could be mistaken for factual claims.
 
-- Creating another USOL mint, minting additional tokens, or changing mint/freeze authorities.
-- Modifying pinned token configuration, historical deployment records, or protected deployment/verification tools to support the website; do not restore transaction-capable behavior to retired utilities.
-- Requesting, collecting, storing, transmitting, or exposing seed phrases or private keys; adding key files/key loading; signing with project-owned private keys or server-side signing.
-- Performing blockchain transactions, or implementing wallet signing, transfers, or swaps for the initial connection-only phase. The root's transaction approval requirements remain controlling even if a future transaction feature is separately considered.
-- Inventing prices, market capitalization, volume, liquidity, exchange listings, partnerships, audits, utilities, or guaranteed returns/outcomes.
-- Real blockchain transactions in tests, secrets in repository files, or publishing/deployment without explicit approval.
+Public pages should remain accessible without connecting a wallet.
 
-If a desired feature appears to conflict with root instructions, mark it blocked, state the relevant conflict, and request direction. Do not make a change that weakens or bypasses the root rules.
+8. Project Information page and navigation (implemented)
 
-## 7. Homepage layout and content
+The owner-approved page and navigation reorganization are implemented on feature branch `feat/project-information-page`. A later owner correction removed the dedicated Risks section from the website entirely: it is not on the homepage and not on the Project Information page.
 
-Recommended mobile-first section order:
+**Homepage** (`/`)
 
-1. **Header:** verified official logo, UnitedSOLANA wordmark, compact navigation, and accessible menu control on narrow screens.
-2. **Hero:** concise project identification and a factual, non-promissory introduction. Primary call to action should lead to an approved information section/resource. Do not imply investment returns or verified utility not documented by the project.
-3. **Project overview:** explain only approved project purpose and status; avoid unsupported claims.
-4. **Token facts:** network, name/symbol, canonical mint, decimals, and total/initial supply as recorded. Clearly label what each figure means and provide a safe copy action/explorer link only after verifying the destination/address. Authority status can be stated as root-recorded and should not be portrayed as a fresh live check unless one was performed.
-5. **How to verify / resources:** link to confirmed official sources and clearly identify external explorers or sources. Do not invent community links.
-6. **Wallet connection entry point (future approved phase):** describe that connecting shares a public address with the page; distinguish this from signing or authorizing transactions. Do not show transactional controls.
-7. **Risk and transparency note:** concise cryptocurrency risk disclosure; no investment advice or promised return.
-8. **Footer:** logo/name, approved navigation, verified contact/community links if supplied, copyright/legal links only if approved and available.
+- Overview section only, at `/#overview`.
+- Wallet panel and all wallet functionality unchanged.
 
-Content can be omitted until verified; do not fill unknowns with placeholders that look factual. A disconnected wallet should not block access to public pages.
+**Project Information page** (`/project-information`)
 
-## 8. Navigation and proposed pages
+1. Token — `#token`
+2. Principles — `#principles`
+3. Transparency — `#transparency`
 
-Start with a lightweight single-page navigation if that serves the approved initial content. Suggested top-level anchors or pages, subject to approved content:
+Navigation destinations, in both the header dropdown and the footer: Overview → `/#overview`; Token → `/project-information#token`; Principles → `/project-information#principles`; Transparency → `/project-information#transparency`. There is no Risks navigation entry.
 
-- Home
-- About / Project
-- Token information
-- Ecosystem (only when verified content exists)
-- Resources (only confirmed destinations)
-- Wallet (only after the separate connection phase is approved)
+Routing: `web/server.js` serves `/project-information` from its explicit `ROUTES` allowlist with the `no-store` cache header. Section anchors are resolved by the browser and never reach the server, so direct access, refresh, and back/forward navigation need no client-side router. Unknown paths keep returning HTTP 404, and the RPC proxy allowlist is unchanged.
 
-Do not create a “Buy,” “Trade,” “Swap,” “Staking,” or “Earn” route as part of the initial website. Any later marketplace or transaction experience needs a separate scope, route verification, user approval, and consistency with root rules. Avoid dead links and unverified social/community URLs. If multi-page routing is later approved, define 404 behavior and ensure the current static server or approved hosting correctly serves routes.
+The page reuses the existing `styles.css` / `theme.css`, header and footer markup, and the `nav.js` mobile disclosure. It loads `/nav.js`, `/theme.js` and `/token.js` (mint copy) only; it does not load the wallet scripts and carries no wallet panel.
 
-## 9. Mobile-first and desktop design
+Open item for the owner: root `AGENT.md` section 7 asks for appropriate risk disclosures, while the dedicated risk section is now removed. Current risk wording is limited to the footer note ("not investment advice") and the transparency copy. Confirm whether further risk wording is required.
 
-Design first for narrow phone viewports and touch interaction, then progressively enhance for tablets and desktop. Use responsive layouts, readable line lengths, scalable type, adequate spacing, and large touch targets (aim for at least 44 CSS pixels where practical). Avoid horizontal overflow, hover-only controls, and small address/copy controls. Wallet selection and connection states should remain understandable on mobile browsers and in-app wallet browsers, with graceful guidance when a wallet provider is unavailable or the page is embedded.
+Preserve existing copy and meaning, visual design, responsive behavior, accessibility, and functionality. Direct section links, browser refresh, and back/forward navigation must work.
 
-On wider screens, use a constrained content width, intentional whitespace, and responsive grids rather than stretching text. Respect reduced-motion preferences. Provide visible keyboard focus and do not rely on color alone for status. Test at representative small-phone and desktop sizes and with zoom/text scaling.
+Do not create functional Buy, Trade, Swap, Staking, or Earn routes without separate approval and verified supporting functionality. Avoid dead links, unverified social accounts, and unsupported partnership claims.
 
-## 10. Branding, palette, and official logo
+9. Mobile-first and desktop design
 
-The existing stylesheet uses a dark visual system: background `#060b14`, surfaces around `#0d1524`, pale text `#e8effc`, muted text `#93a4c2`, and blue-to-purple gradient accents. Treat these as existing implementation colors, not confirmed official brand standards. Reuse or adjust them only through an approved design phase; check contrast ratios and define named CSS variables rather than scattering literals.
+Design for narrow phone screens first, then progressively enhance for tablets and desktop.
 
-The repository contains root `logo.svg` and `logo.png`, and root instructions list a canonical metadata logo URI. Confirm the local asset's identity, resolution, and provenance before calling it the official logo. Preserve the source asset; do not overwrite it. Prefer a reviewed copy inside `web/assets/brand/` only if necessary and approved, keeping attribution/source documented. Provide meaningful alt text when the logo conveys information; use empty alt text for a decorative duplicate next to a text wordmark. Do not recolor or distort the mark without authorization.
+Requirements:
 
-## 11. Official token information and factual integrity
+- Responsive layouts without horizontal overflow.
+- Readable text and appropriate line lengths.
+- Touch-friendly controls, aiming for at least 44 CSS pixels where practical.
+- Visible keyboard focus.
+- No hover-only functionality.
+- Support for reduced-motion preferences.
+- Accessible status messages.
+- Graceful behavior when JavaScript or wallet providers are unavailable.
 
-Root `AGENT.md` identifies the recorded canonical facts:
+On wider screens, use constrained content widths, intentional whitespace, and responsive grids.
 
-- Name/symbol: UnitedSOLANA / USOL.
-- Network: Solana Mainnet (`mainnet-beta`).
-- Mint: `FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG`.
+Test representative small-phone and desktop viewports.
+
+10. Branding, palette, and official logo
+
+The existing styles have used a dark visual system with:
+
+- Background: "#060b14"
+- Surfaces around: "#0d1524"
+- Primary text: "#e8effc"
+- Muted text: "#93a4c2"
+- Blue-to-purple gradient accents.
+
+These are existing implementation colors, not necessarily confirmed official brand standards.
+
+Review contrast and accessibility before changing the design.
+
+The project has a canonical logo URI recorded in root "AGENT.md". Preserve the existing local logo asset and verify its source before replacing or modifying it.
+
+Do not distort, recolor, or overwrite the logo without approval.
+
+Use meaningful alt text when the logo conveys information. Use empty alt text for a decorative duplicate beside a text wordmark.
+
+11. Canonical token information
+
+Root "AGENT.md" records the following project details:
+
+- Name: UnitedSOLANA.
+- Symbol: USOL.
+- Network: Solana Mainnet ("mainnet-beta").
+- Mint: "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG".
 - Decimals: 9.
-- Total supply recorded: 1,000,000,000 USOL; do not relabel this as circulating supply.
-- Metadata account: `4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc`.
-- Metadata URI: `https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY`.
-- Logo URI: `https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo`.
-- Mint and freeze authorities recorded as revoked (`null`).
+- Recorded total/initial supply: 1,000,000,000 USOL.
+- Metadata account: "4VsgjLd3QisSUmEJwn2gmdrijeSbfHbkiGx3T3wXX9zc".
+- Metadata URI: "https://gateway.irys.xyz/Z5nnTKSPFq2eOUsTUwOM57zh0Bav97Cm-Bl4jEVcDWY".
+- Logo URI: "https://gateway.irys.xyz/7l-PU0ePGIx-bqZYzXbGLCX1F4-Q8EmPInDnbBAzDjo".
+- Mint authority: revoked ("null").
+- Freeze authority: revoked ("null").
 
-Treat this as the project's pinned record, not proof of a new live check. If displaying live on-chain or third-party data is later approved, identify the source, timestamp/last-checked time, failure/staleness behavior, and whether the value is estimated. Never invent token price, market cap, trading volume, liquidity, listings, partnerships, audits, or utility. Do not promise returns. Use risk disclosures suitable to the displayed information.
+These are pinned project records, not proof of a new live blockchain verification.
 
-## 12. Approved wallet integration — Phantom connection only
+Do not describe total supply as circulating supply.
 
-Phase 3 is approved as a **Phantom-only, connection-only** increment. It provides:
+If live on-chain or third-party information is introduced in an approved phase, identify its source, retrieval time, stale-data behavior, and whether it is an estimate.
 
-- Phantom detection through its documented provider (`window.phantom.solana`, with legacy `window.solana` as documented), including late provider injection in mobile in-app browsers.
-- Clear detected, missing, embedded-frame, and unsupported states.
-- User-initiated connect and disconnect; connection status and a validated public address.
-- Provider errors including rejection, overlapping approval, unauthorized, network, timeout, and account-change events, with accessible recovery guidance.
-- Mobile and in-app-browser guidance, including Phantom's documented Browse deep link.
+Never invent prices, market capitalization, volume, liquidity, listings, partnerships, audits, or utilities.
 
-Solflare, Backpack, Wallet Standard discovery, wallet selection across multiple wallets, and any provider abstraction or compatibility library are **deferred** to a future, separately approved increment.
+12. Current wallet functionality and security boundaries
 
-The implementation ends at connection state and public-address display. It must not request signatures, sign messages, submit transactions, transfer tokens, execute swaps, or make wallet-based payments. Do not display token/SOL balances in this initial scope. Connecting is not consent to transact. Do not persist or send the address unless a separately approved privacy design requires it; default to keeping connection data in page memory and explain any provider-managed trusted-site behavior accurately. Never request secrets.
+The current homepage wallet panel is implemented, not merely proposed. The website code provides Wallet Standard discovery for Solana wallets, injected Phantom and Solflare fallbacks, user-initiated connection and disconnection, validated public address display, and account-change/external-disconnect handling. Other compatible Wallet Standard wallets may be detected. No Backpack-specific integration is present.
 
-## 13. Future swap integration points
+The panel displays read-only SOL and USOL balances. Balance requests go through the local `POST /api/rpc` proxy, which accepts only `getBalance` and `getTokenAccountsByOwner`; the upstream RPC URL and optional Helius key are server-side. The wallet flow does not sign messages or transactions, send transfers, or execute swaps.
 
-Swap functionality is not part of the initial site or wallet phase. Any later proposal must separately establish whether it is permitted by root instructions and obtain explicit approval. It must verify that a genuine route and liquidity exist before presenting a route; disclose provider/source, quote age, fees, price impact, and slippage where available; show transaction details before the user approves inside their own wallet; and handle unavailable routes, rejection, and failures. No automated test may submit a real transaction. Do not claim a pair, route, pool, or exchange listing without verification. If root rules or user scope do not allow it, do not implement it.
+Automated tests cover discovery, connection/disconnection helpers, account-change events, balance formatting, and proxy behavior using local mocks. The handover records the exact tests run for this documentation update. Real extension, in-app browser, physical-device, and live Mainnet balance testing remain unverified unless separately recorded as performed.
 
-## 14. Ecosystem and platform expansion
+Connection and balance display do not authorize any signing, transfers, swaps, purchases, sales, payments, or transaction submission. Any transaction feature requires a separate proposal, technical/security review, and explicit owner approval.
 
-Potential later content may include verified project updates, approved ecosystem resources, and confirmed integrations. Each item must have a source and owner for ongoing maintenance. Do not imply partnership or endorsement without confirmation. Accounts, live chat, payments, staking, rewards, governance, and other interactive platform services are outside the initial architecture. They require a separate product, privacy, security, moderation, operational, and legal review before approval; some may be incompatible with repository rules.
+13. USOL swap integration
 
-## 15. Security and privacy requirements
+Status: Not implemented and not approved.
 
-- Follow root `AGENT.md` and the connection-only scope above; never expose or handle wallet secrets.
-- Keep web code under `web/`, separate from token/deployment tooling. Do not add server-side signing or key files.
-- Minimize external scripts, fonts, analytics, and wallet dependencies; review package provenance, maintenance, permissions, and supply-chain risk before approval.
-- Use HTTPS in production; do not collect personal data by default. If any data collection is proposed, document purpose, retention, access, consent, and privacy disclosure before implementation.
-- Prevent unsafe HTML injection; render untrusted text with safe DOM APIs. Validate/encode URLs and use safe external-link attributes. Do not leak addresses or diagnostics to logs/third parties.
-- For any future server endpoints, define minimal methods, input validation, rate limiting, security headers, error handling, and privacy controls before approval. The existing server is static-only; do not turn it into a backend implicitly.
-- Keep credentials out of source, examples, bundles, and commits; use no `.env` secrets in browser code.
-- Keep offline tests independent from live chain services; mock providers and network responses. No real transaction in tests.
+Potential functionality:
 
-## 16. Performance, accessibility, and testing
+- SOL-to-USOL swaps.
+- USOL-to-SOL swaps.
+- Investigation of Jupiter and other reputable supported integrations.
+- Verified quote and route retrieval.
+- Transaction previews.
+- Wallet approval and understandable transaction states.
+- Slippage and fee information.
+- Error handling for unavailable routes and rejected transactions.
 
-Prefer local, optimized assets and minimal JavaScript for the initial informational site. Avoid unnecessary dependencies and large render-blocking resources. Set explicit image dimensions, lazy-load below-fold media when appropriate, and ensure page content remains useful if scripts or wallet providers fail. Any performance targets should be agreed and measured on the approved build; do not claim a score without running the measurement.
+Before implementation, verify that a genuine route and liquidity exist.
 
-Use semantic landmarks and heading order, accessible names for controls, keyboard-operable navigation and wallet selection, focus management for menus/dialogs, visible focus, sufficient contrast, reduced-motion support, and status announcements that are not overly verbose. Test keyboard-only use and a screen reader where available.
+Identify the provider and quote age. Disclose fees, price impact, and slippage where available.
 
-Test plan by phase may include:
+All transactions must be reviewed and approved by the user's connected wallet.
 
-- Existing `npm run test:offline` regression test; preserve its offline nature.
-- HTML/CSS/JavaScript checks and static server route/method behavior for approved site changes.
-- Responsive viewport checks, overflow, link validity, focus, contrast, keyboard navigation, and manual accessibility checks.
-- Wallet feature tests with a mocked Phantom provider: connect/disconnect, address validation and status rendering, missing provider, embedded frame, rejection, timeout, documented provider errors, account changes, and mobile/provider-unavailable states. Solflare, Backpack, and Wallet Standard discovery are not part of the approved Phase 3 test scope.
-- Confirm wallet tests do not invoke signing, transaction submission, transfers, swaps, or balance retrieval.
-- Security and dependency review for any approved integration.
+Never claim a pair, route, pool, or exchange listing exists without verification.
 
-Report commands actually run and results. Do not claim a test, accessibility audit, live verification, or wallet compatibility check without performing it.
+Any future swap proposal requires a separate technical and security review and explicit owner approval.
 
-## 17. Hosting, domain, and deployment
+No real transaction may be submitted as part of automated testing.
 
-No production host or domain is asserted by this document. Select a host only after approval and verify it can serve the approved static output over HTTPS with correct caching, MIME types, fallback routes (if needed), and security headers. The current `web/server.js` is a small development/static server and is not automatically a production hosting recommendation. Consider domain ownership and DNS, TLS renewal, rollback, build reproducibility, monitoring, privacy, and content-update process in a launch proposal. Do not put credentials in the repository. Do not deploy or configure a domain without explicit approval.
+14. Phase Six — Ecosystem and launch readiness
 
-## 18. Development phases and deliverables
+Status: Proposed, not implemented.
 
-Each phase requires its own user approval before implementation, followed by tests, review, a completion report, and a stop for approval before the next phase. Phases can be subdivided; scope does not advance by implication.
+Potential work:
 
-### Phase 0 — Discovery and architecture/design
+- Verified ecosystem information.
+- Confirmed official social links.
+- Project documentation and user guidance.
+- Custom domain configuration.
+- Hosting and production readiness.
+- Additional approved integrations.
 
-**Deliverables:** repository/file inventory, approved mission and content boundaries, visual direction, navigation/wireframe, technology recommendation, risk and dependency assessment.
+Do not imply a partnership or endorsement without confirmation.
 
-**Acceptance:** root and website instructions read; actual `web/` files inspected; current state distinguished from proposal; all unknown claims and links identified; user approves design and scope. No code change unless separately authorized.
+Domain ownership, DNS configuration, Vercel setup, and production deployment must be independently verified.
 
-### Phase 1 — Public website foundation
+Each external service and launch action requires approval.
 
-**Deliverables:** approved responsive homepage, navigation/footer, verified logo integration, factual introductory content, basic page metadata and disclosures.
+15. Security and privacy requirements
 
-**Acceptance:** only approved files changed; mobile and desktop layouts usable without horizontal overflow; keyboard focus/navigation and semantic structure work; logo source verified; no invented claims or dead/unverified links; existing offline tests still pass; no wallet-dependent page access.
+- Follow root "AGENT.md".
+- Keep website code under "web/".
+- Do not expose or handle wallet secrets.
+- Never add project-owned wallet signing or server-side private-key handling.
+- Minimize external scripts, fonts, analytics, and dependencies.
+- Review package provenance, maintenance, permissions, and supply-chain risk.
+- Use HTTPS in production.
+- Do not collect personal data by default.
+- Do not transmit wallet addresses to analytics or unrelated services without approved privacy requirements.
+- Render untrusted text using safe DOM APIs.
+- Validate external URLs and use safe link attributes.
+- Preserve the existing read-only RPC proxy's method restrictions. Do not expand the static server or proxy into additional backend functionality implicitly.
+- Keep credentials out of source code, examples, bundles, and commits.
+- Do not place secrets in browser environment variables or public build output.
 
-### Phase 2 — Token information
+Any future backend or data collection requires a separate architecture, privacy, and security review.
 
-**Deliverables:** clear token facts section using canonical recorded details and verified official-source links; safe copy interaction if approved.
+16. Performance, accessibility, and testing
 
-**Acceptance:** mint/network/decimals/supply/authority labels match root records; supply is not mislabeled as circulating; recorded facts are not presented as a fresh live check; all external information has source/checked-time labels where applicable; no fabricated market/project claims; offline tests pass.
+Prefer optimized local assets and minimal JavaScript.
 
-### Phase 3 — Connection-only Phantom support (approved)
+Use semantic HTML, accessible names, correct heading order, keyboard-operable controls, visible focus, sufficient contrast, and reduced-motion support.
 
-**Deliverables:** Phantom detection through its documented provider (`window.phantom.solana`, legacy `window.solana` where documented); connect/disconnect; validated public address and connection status; missing-provider, embedded-frame, rejection, timeout, and documented provider-error handling; mobile/in-app-browser guidance with Phantom's Browse deep link; offline tests for the pure helpers and connection-only invariants.
+Testing should include relevant checks from the following list:
 
-**Acceptance:** Phantom is detected through its documented provider and connect/disconnect are user initiated and work with a mocked provider; the public address is validated before display and status is presented accessibly; rejection, missing provider, embedded frame, timeout, disconnect, and account changes are handled; the page remains usable without a wallet; privacy behavior is documented and minimal; no signing, message signing, transaction request, token transfer, swap, payment, balance display, or transaction submission code is introduced; no real transactions are tested. Solflare, Backpack, and Wallet Standard support are explicitly **out of scope** and deferred.
+- Existing "npm run test:offline" regression tests.
+- Website server and route tests.
+- Responsive mobile and desktop checks.
+- Horizontal overflow checks.
+- Navigation and link validation.
+- Keyboard accessibility.
+- Browser console review.
+- Wallet connection tests using mocked providers.
+- Error and unavailable-provider handling.
+- Security and dependency review.
 
-### Phase 4 — Future integrations, each separately proposed
+For changes to balance functionality, test missing accounts, stale data, RPC failures, and incorrect wallet contexts.
 
-**Deliverables:** a feature-specific product, technical, security, privacy, and testing plan before any implementation (for example, on-chain read-only display or a transaction-related proposal).
+For future swaps, use mocked or quote-only tests wherever possible. Never submit a real transaction in automated tests.
 
-**Acceptance:** user approves a distinct scope; root `AGENT.md` permits it; factual sources and failure behavior are defined; threat/dependency review is complete; test plan uses mocks/offline fixtures and no real transactions; otherwise feature remains blocked/not implemented. This phase does not pre-approve any transaction or financial feature.
+Report commands actually run and their exact outcomes.
 
-### Phase 5 — Ecosystem content and expansion
+Do not claim a test, audit, live verification, or wallet compatibility check without performing it.
 
-**Deliverables:** verified resource/update pages or separately approved platform capabilities with explicit ownership and maintenance plan.
+17. Hosting, domain, and deployment
 
-**Acceptance:** every claim/integration is authorized and sourced; no implied partnerships, fabricated utilities, or unapproved data collection; privacy/security/moderation risks are resolved; tests and documentation are reviewed; root rules remain satisfied.
+No hosting platform, preview environment, custom domain, or current production deployment was verified during this handover update. Verify these facts before describing or using them.
 
-### Phase 6 — Optimization and launch readiness
+GitHub is the source of truth. GitHub Copilot is used for documentation and agent-instruction maintenance. Base44 is currently used for approved website implementation on a separate feature branch based on the approved updated development baseline. Review changes and test results before merging or deployment; owner approval is required before either action.
 
-**Deliverables:** measured performance/accessibility/security review, approved hosting/domain plan, reproducible build and rollback instructions, launch checklist.
+Before any future launch, verify HTTPS, routing, MIME types, caching, security headers, rollback procedures, domain DNS, TLS, privacy, and maintenance ownership. Do not commit hosting credentials or secrets to the repository.
 
-**Acceptance:** actual test/audit results recorded; HTTPS, routing, headers, cache behavior, privacy, and operational ownership are checked; existing tests remain intact; no deployment or public launch until the user separately approves it.
+18. Current status and approved next work
 
-## 19. Change management and maintenance
+The homepage, wallet capabilities and the Project Information page are implemented as described in sections 7, 8 and 12. The dedicated Risks section was removed at owner instruction. Automated website and offline tests passed during the 2026-11-13 documentation update; the page/navigation change has not been covered by an executed test run — refer to "agent/HANDOVER.md" for exact commands, results, and unverified manual checks.
 
-Before changing any existing file, read it fully and check its callers, routes, and tests. Keep each change within the approved phase and file scope. Avoid destructive rewrites and unrelated formatting. Review the diff for accidental modifications to deployment/token files and credentials. Do not automatically copy proposal structure into the repository.
+The page/navigation work was implemented on feature branch `feat/project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`. Owner review, merge approval, and any deployment remain outstanding.
 
-After an approved phase, document status, completed criteria, changed files, actual tests, decisions/sources, limitations, and outstanding tasks. Keep later phases clearly marked as planned and not approved. Use GitHub as the source of truth for approved artifacts; only make commits, pushes, merges, and deployments explicitly authorized by the user. A branch commit does not imply permission to merge.
+Swaps, transactions, signing, transfers, payments, and further ecosystem features are not approved by the page/navigation task. Any such feature requires separate approval and appropriate technical/security review.
 
-## 20. Explicit scope summary
+19. Change management and maintenance
 
-- **Initial planned public site:** responsive, factual public project pages and navigation; no invented claims.
-- **Approved wallet phase (Phase 3):** Phantom-only detection, connection/disconnection, validated public address/status, and missing-provider/embedded/error handling. Connection-only. Solflare, Backpack, Wallet Standard, and multi-wallet selection are deferred.
-- **Future, separately approved:** broader pages, ecosystem expansion, and any additional data or integrations.
-- **Not part of initial scope:** signing, transfers, swaps, wallet payments, balances, or transaction submission.
-- **Never permitted by root rules:** creating another USOL mint, changing authorities, exposing/requesting secrets, modifying protected token/deployment tooling to enable site features, or fabricating project/market claims.
+Before editing an existing file, read it completely and inspect its references, callers, routes, and tests.
 
-When uncertain, stop, report the question or root-rule conflict, and wait for user direction.
+Keep each change within the approved phase and file scope.
+
+Avoid destructive rewrites, unrelated formatting, and unapproved dependencies.
+
+Review the complete diff for accidental changes to:
+
+- Token configuration.
+- Deployment records.
+- Deployment and verification tooling.
+- Existing website behavior.
+- Credentials and secrets.
+
+Whenever an agent completes a significant task or hands work to another agent, update "agent/HANDOVER.md" with verified changes, current status, outstanding work, relevant branch information, and next steps. Keep it concise and factual; preserve prior history and do not claim unverified work as complete.
+
+Keep documentation consistent across:
+
+- "AGENT.md"
+- "agent/SKILL.md"
+- "agent/WEBSITE_ARCHITECTURE.md"
+- "agent/HANDOVER.md"
+- "README.md"
+
+Use GitHub as the source of truth.
+
+Only commit, push, merge, publish, or deploy when explicitly authorized. Authorization to commit to a development branch does not authorize merging or production deployment.
+
+When uncertain, stop, report the issue, and request direction.
