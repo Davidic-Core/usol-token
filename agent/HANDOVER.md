@@ -52,6 +52,17 @@ These automated results concern the existing application code only; this task di
 - **Not run:** `npm run test:web`, `npm run test:offline`, and any build command (owner instruction to conserve credits). The updated `web/tests/server.test.js` has not been executed, so its results are unknown.
 - **Not verified:** browser back/forward was exercised only as ordinary link navigation, not asserted automatically; real-wallet connect/disconnect and balances (require a browser extension); keyboard/assistive-technology and real-device review.
 
+## C2. Support page — implementation record (2026-11-13)
+
+- **Branch:** Base44 working branch `support-page`, based on `fix-website` at commit `d11996cf17`. Not committed or pushed.
+- **Created:** `web/support.html`.
+- **Modified:** `web/server.js` (`/support` added to the explicit `ROUTES` allowlist), `web/index.html` and `web/project-information.html` (Support added to the header navigation and footer navigation; Overview and Token destinations unchanged), `web/styles.css` (Support page rules appended; no existing selector changed), and this handover.
+- **Structure:** `/support` opens with the heading "Be Part of UnitedSOLANA" and the supporting message, plus an "On this page" panel of jump links. Four numbered chapters follow, each a `section` with its own id, kicker, `h2`, lede and a `.support-grid` of `.support-card` elements: Join the community (`#join`), Build with us (`#build`), Support ecosystem development (`#develop`), Explore the ecosystem (`#explore`). A closing "How this page grows" band (`#growing`) documents the expansion pattern and repeats the page's limits. Future initiatives, programmes, partnerships and participation opportunities extend the relevant chapter with another card, or add a new chapter using the same pattern; the grid reflows automatically.
+- **Content limits:** no donation address, payment route, social link, partnership, product availability or return claim. No external links, no wallet scripts, no wallet panel, no transaction or payment code. The Risks section is not reintroduced.
+- **Routing:** separate document served from the `ROUTES` allowlist; section hashes are resolved by the browser. Unknown paths still return 404 and the `/api/rpc` proxy allowlist is unchanged.
+- **Verification performed (preview, 2026-11-13):** `/support` returns 200 and renders the specified heading, supporting message, four chapter headings and 12 cards; `/`, `/project-information` and `/support` all expose Overview, Token and Support in the header and footer; the homepage wallet panel is intact; no Risks wording on `/` or `/project-information`; unknown path still 404. Desktop and mobile viewports show no horizontal overflow (measured). The "Join the community" button and the panel jump links move to their sections (`#join`, `#explore`). The mobile menu disclosure opens and lists Support. Dark mode switches the page and cards to the dark tokens. No console errors.
+- **Not verified:** automated tests were not run (owner instruction), so `npm run test:web` results for the new route are unknown; no real-wallet, real-device or assistive-technology review.
+
 ## D. Previous agent's work
 
 The following activity is supported by the checked-out Git history; it is not a claim about a particular person's identity.
