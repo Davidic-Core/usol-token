@@ -976,45 +976,6 @@ h3 {
   font-size: 0.94rem;
 }
 
-.risk-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(1.75rem, 4vw, 3.5rem);
-  padding: clamp(1.75rem, 4.5vw, 3.25rem);
-  border: 1px solid #c9d4ff;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, #eef2ff, #f8fafc 70%);
-  box-shadow: var(--shadow-soft);
-}
-
-.risk-panel__intro p:last-child {
-  margin-bottom: 0;
-  color: var(--ink-soft);
-}
-
-.risk-list {
-  display: grid;
-  align-content: start;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.risk-list li {
-  padding-left: 1.1rem;
-  border-left: 2px solid var(--green);
-  color: var(--ink-soft);
-  font-size: 0.94rem;
-}
-
-.risk-list strong {
-  display: block;
-  margin-bottom: 0.15rem;
-  color: var(--ink);
-  font-size: 0.95rem;
-}
-
 /* Homepage wallet overview */
 .wallet-panel {
   padding: 1.25rem 0 0;
@@ -1177,7 +1138,6 @@ h3 {
   .overview-grid,
   .cards,
   .ledger,
-  .risk-panel,
   .footer-inner,
   .token-mint {
     grid-template-columns: minmax(0, 1fr);

@@ -1,146 +1,119 @@
-Website Handover — UnitedSOLANA
+# UnitedSOLANA Project Handover
 
-Recorded: 2026-11-09
+This is the living, factual handover for any developer, agent, or assistant taking over the project. Read it with the root [AGENT.md](../AGENT.md), [SKILL.md](SKILL.md), [WEBSITE_ARCHITECTURE.md](WEBSITE_ARCHITECTURE.md), and [V0_INSTRUCTIONS.md](V0_INSTRUCTIONS.md). The root instructions govern where applicable. Record new verified work at the top of the relevant history; do not erase or rewrite prior handover history to imply that unverified work was completed.
 
-This document records the current website project status and where development should resume. It does not override "AGENT.md", "agent/SKILL.md", "agent/WEBSITE_ARCHITECTURE.md", or "agent/V0_INSTRUCTIONS.md". The root "AGENT.md" remains the highest authority.
+## A. Project identity
 
-1. Current status
+- **Project:** UnitedSOLANA (USOL), an existing Classic SPL Token on Solana Mainnet and its public information website.
+- **Verified repository:** `davidcloud001/usol-token` (`https://github.com/davidcloud001/usol-token`), a fork of `Snr-Dave/usol-token`.
+- **Canonical upstream:** `Snr-Dave/usol-token` (`https://github.com/Snr-Dave/usol-token`), verified from the configured `upstream` remote and GitHub repository metadata.
+- **Current working branch at this update:** `docs/update-project-guidance`.
+- **GitHub default branch observed for both the working fork and upstream:** `feat/usol-wallet-theme`. No separate canonical integration branch is established by the current repository evidence.
+- **Token identity:** Solana Mainnet (`mainnet-beta`); mint `FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG`; 9 decimals; recorded initial supply 1,000,000,000 USOL. This is not a circulating-supply figure. Recorded mint and freeze authorities are revoked. Preserve the pinned configuration, metadata, deployment records, and transaction history.
 
-Phase| Status
-Phase 0 — Discovery and architecture| Complete
-Phase 1 — Public website foundation| Complete
-Phase 2 — Token information and design refinements| Complete
-Phase 3 — Phantom-only wallet connection| Implemented and merged/synchronised into the working fork's "fix-website" branch, according to the owner
-Phase 4 — Read-only wallet balances| Proposed; not implemented or approved
-Phase 5 — Token swaps| Proposed; not implemented or approved
-Phase 6 — Ecosystem and launch readiness| Future proposal
+## B. Current project status
 
-Multi-wallet support (Solflare, Backpack and Wallet Standard) remains deferred.
+- The static, dependency-free website and read-only wallet experience described below are implemented in `web/`.
+- The homepage now contains the Overview section and the wallet panel (wallet connection and read-only balances). The dedicated Project Information page at `/project-information` contains the Token, Principles, and Transparency sections. The dedicated Risks section was removed from the website at owner instruction, including its navigation entry, content and links.
+- The documentation corrections in `agent/SKILL.md` and `agent/WEBSITE_ARCHITECTURE.md` were committed on `feat/usol-wallet-theme` as `3e9ae247d600d38531f5dda422fbc689ac97ac11` (`docs: align project guidance with current website structure`).
+- The site has server-side RPC proxying restricted to the two read-only balance methods used by the wallet panel.
+- **Implemented task:** the Project Information page and navigation reorganization described in section E are implemented on branch `feat/project-information-page`, then corrected at owner instruction to three sections with Risks removed. See section C1 for files, routing and verification status.
+- The six-file documentation update is complete. Commit `73b5d14db3e33a8be60d6729e41d38b93bac1201` is committed and pushed to `davidcloud001/usol-token` on `docs/update-project-guidance`.
+- The intended next development repository is `dave-clouds/usol-token`. Transfer to that repository is not complete until the cross-account PR is merged and verified. No transfer completion is claimed here.
+- Website swaps, transfers, signing, payments, and other transaction features are not approved. No merge into an integration or default branch, or production deployment, has been authorized.
 
-Phase Three supports Phantom connection and disconnection only. It does not authorize message signing, transaction signing, transfers, payments, purchases, sales or swaps.
+## C. Website implementation status
 
-2. Repository and branch workflow
+| Area | Verified implementation status | Verification status |
+|---|---|---|
+| Homepage and navigation | `web/index.html` keeps the Overview section and the wallet panel. The header dropdown and footer link to Overview (`/#overview`) and to Token, Principles and Transparency on `/project-information`; there is no Risks entry. Mobile navigation (`web/nav.js`) is unchanged. | The recorded 48/48 `npm run test:web` result predates this change; the updated suite has not been executed. |
+| Project Information page | `web/project-information.html` serves Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`) through the `ROUTES` allowlist in `web/server.js`. It loads no wallet scripts and contains no Risks section. | Preview checked on 2026-11-13: page and section deep links load, desktop navigation and section anchors resolve, mobile layout collapses to one column with no horizontal overflow. No automated test run. |
+| Token information | Homepage content displays the pinned mint, metadata account, 9 decimals, recorded initial supply, and recorded revoked authority states. It explicitly distinguishes initial from circulating supply and does not present initial supply as circulating. | Website tests check the rendered facts against `config/mainnet.js`; these are local records, not a new live-chain verification. |
+| Wallet discovery | `web/wallet-discovery.js` implements Solana Wallet Standard registration and connection discovery, with injected Phantom and Solflare fallbacks in `web/wallet-home.js`. Other compatible Wallet Standard Solana wallets may be listed. No Backpack-specific integration is present. | Automated discovery tests exist and passed as part of the 48 website tests. |
+| Wallet connection | User-initiated connection, public-address validation, connection status, and errors are implemented. | Mocked automated tests exist and passed. Real wallet approval was not tested. |
+| Wallet disconnection | User-initiated and provider-triggered disconnection are implemented. | Mocked automated tests exist and passed. Real wallet disconnection was not tested. |
+| Account changes and switching | Standard account-change and injected-provider account/disconnect events are handled; the active address and balances are updated. | Mocked tests exist and passed. Switching accounts in a real wallet was not tested. |
+| SOL and USOL balances | Read-only balances are shown on the homepage. SOL lamports and USOL token-account amounts are formatted by `web/wallet-core.js`; missing USOL accounts display zero. No price or USD value is shown. | Formatting and error tests exist and passed. No live balance retrieval was performed during this task. |
+| Restricted RPC proxy | `web/server.js` serves `POST /api/rpc`, allowing only `getBalance` and `getTokenAccountsByOwner`; the configured upstream endpoint/Helius key remains server-side. The client calls only the local proxy. | Automated tests exercised allowed/blocked methods, malformed requests, upstream errors, and timeouts with a local mock upstream. No live upstream request was performed. |
+| Automated tests | `web/tests/server.test.js`, `wallet.test.js`, `wallet-balances.test.js`, and `wallet-discovery.test.js` exist. The repository's offline verification suite also exists. | `npm run test:web`: 48 passed, 0 failed, and `npm run test:offline`: 14/14, both **before** the Project Information page change. `web/tests/server.test.js` was updated for the new structure but not run (owner instruction to conserve credits). |
+| Manual browser and real-device testing | No current evidence in this task verifies cross-browser visual review, Phantom extension use, Solflare use, mobile in-app wallet use, or a physical-device test. | **Untested / not verified.** Do not report these checks as completed. |
 
-- Canonical upstream: "Snr-Dave/usol-token".
-- Owner's working fork: "Davidic-core/usol-token".
-- Working integration branch: "fix-website" in the owner's fork.
-- Current documentation branch: "docs/v0-vercel-handover" in the owner's fork.
-- v0 is the planned website implementation agent.
-- GitHub is the source of truth.
-- Vercel is intended for preview builds and hosting.
-- Acode is available for local Git operations and testing.
-- Copilot may assist with repository and documentation work.
+These automated results concern the existing application code only; this task did not modify or validate application code changes.
 
-The documentation updates and v0 instructions are being prepared on "docs/v0-vercel-handover".
+## C1. Project Information page — implementation record (2026-11-13)
 
-Do not assume a branch has been merged or deployed unless its actual GitHub history or deployment status has been checked. No production deployment is authorized by this handover.
+- **Branch:** `feat/project-information-page` (Base44 working branch `project-information-page`), based on the approved baseline `feat/usol-wallet-theme` at commit `b1fb8e8a983118f2f3f1b86df028aaaa67627666`, verified against `origin/feat/usol-wallet-theme`.
+- **Created:** `web/project-information.html`.
+- **Modified:** `web/index.html` (Overview kept; Token, Principles, Transparency and Risks sections removed; navigation and footer relinked), `web/server.js` (`/project-information` added to the explicit `ROUTES` allowlist), `web/styles.css` (unused `.risk-panel` / `.risk-list` rules removed), `web/tests/server.test.js` (updated for the new page and routing), `AGENT.md`, `README.md`, `agent/SKILL.md`, `agent/WEBSITE_ARCHITECTURE.md`, and this handover.
+- **Structure:** `/project-information` holds Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`), in that order, with the original copy and links preserved. `/` keeps Overview (`#overview`) and the wallet panel. Header dropdown and footer: `/#overview`, `/project-information#token`, `/project-information#principles`, `/project-information#transparency`. An owner correction removed the dedicated Risks section, its navigation entry and all related links; `#risks` no longer exists.
+- **Routing:** the page is a separate document served from the `ROUTES` allowlist; section hashes never reach the server, so direct links, refresh and browser history rely on normal document navigation with no client-side router. Unknown paths still return 404 and the `/api/rpc` proxy allowlist is unchanged.
+- **Wallet:** unchanged. The information page loads only `/nav.js`, `/theme.js` and `/token.js`; no wallet scripts, no wallet panel, no new wallet permissions or transaction code.
+- **Verification performed (preview, 2026-11-13):** `/` and `/project-information` return 200; `/project-information#token|#principles|#transparency` load and a deep link to `#principles` lands on that section; an unknown path returns 404; both pages expose the four navigation links with no Risks entry; the information page contains the three section IDs and no `risks` ID; it loads only the three scripts above; the mobile render (400 px) uses the dropdown toggle, one column, and no horizontal overflow.
+- **Not run:** `npm run test:web`, `npm run test:offline`, and any build command (owner instruction to conserve credits). The updated `web/tests/server.test.js` has not been executed, so its results are unknown.
+- **Not verified:** browser back/forward was exercised only as ordinary link navigation, not asserted automatically; real-wallet connect/disconnect and balances (require a browser extension); keyboard/assistive-technology and real-device review.
 
-3. Existing website implementation
+## D. Previous agent's work
 
-The website uses a dependency-free HTML, CSS and JavaScript architecture.
+The following activity is supported by the checked-out Git history; it is not a claim about a particular person's identity.
 
-Public homepage
+- `9682524` (2026-11-09), “Add wallet balances and theme toggle”: changed `web/index.html`, `web/server.js`, `web/styles.css`, `web/tests/server.test.js`, `web/theme.css`, `web/theme.js`, and `web/wallet-home.js`. Added homepage balance UI and theme support. This commit is present under merge commit `1c7414d`, “Merge pull request #7 from Davidic-Core/feat/home-wallet-balances”.
+- `a30b64e` (2026-11-10), “Refactor wallet connection and balance handling to support Wallet Standard”: changed `package.json`, `web/index.html`, `web/server.js`, `web/styles.css`, `web/tests/server.test.js`, `web/tests/wallet-balances.test.js`, `web/tests/wallet-discovery.test.js`, `web/wallet-core.js`, `web/wallet-discovery.js`, and `web/wallet-home.js`. Added Wallet Standard discovery and updated wallet integration/tests.
+- `57f34fa` (2026-11-11), “Refactor wallet and server core functionality”: changed `.env.example`, `README.md`, `agent/HANDOVER.md`, `agent/SKILL.md`, `agent/WEBSITE_ARCHITECTURE.md`, `web/index.html`, `web/server.js`, `web/tests/server.test.js`, `web/tests/wallet-balances.test.js`, `web/wallet-core.js`, and `web/wallet-home.js`; removed `web/app.js`, `web/wallet.css`, and `web/wallet.html`. Refactored the server/wallet integration, removed the old standalone wallet page, and updated documentation.
+- `e88fcdd` (2026-11-11), “Implement secure server-side Solana RPC proxy and remove client-side API key exposure”: the recorded file summary shows a change to `web/tests/server.test.js`; do not infer implementation files from the commit title. The current `web/server.js` and automated tests independently confirm the restricted proxy is present.
+- `af571c6` (2026-11-11), “Update .env.example to include active Helius API key placeholder”: changed `.env.example`.
 
-- "web/index.html" — project homepage and token information.
-- "web/styles.css" — responsive visual styling.
-- "web/server.js" — static development server and explicit routes.
-- "web/nav.js" — mobile navigation.
-- "web/token.js" — mint-address copy functionality.
-- "web/assets/brand/usol-logo.png" — approved logo.
+The listed work is committed and present in the current branch history. At inspection, `docs/update-project-guidance` tracked `origin/docs/update-project-guidance` and was up to date, so these commits are present on that tracking remote. The history confirms the wallet-balance merge noted above; it does not establish that the newer changes were merged into the canonical upstream's default branch or deployed. No current live deployment was verified. Earlier documentation recorded manual Phantom testing as outstanding; the current absence of device/browser verification is reaffirmed in section C.
 
-Homepage wallet panel
+**Prior handover record retained (2026-11-09; historical, not current test evidence):** the prior status listed the public website foundation and token information as complete, Phantom-only connection as implemented, and balances, swaps, and launch-readiness as proposed. That status predates the Wallet Standard, balance, and proxy work summarized above and is superseded by current code inspection. It recorded `node --test web/tests/server.test.js web/tests/wallet.test.js` as 19/19 and `npm run test:offline` as 14/14 at that time; these are historical results, distinct from section C's rerun. It also recorded automated preview checks for homepage and embedded wallet-page behavior without enough detail to reproduce them here. The prior manual checklist named desktop Phantom extension connect/disconnect, account-change behavior, Phantom mobile in-app browser, clipboard copying, and keyboard/assistive-technology accessibility. None is claimed complete by this update.
 
-- "web/wallet-core.js" — address validation, balance formatting and error helpers.
-- "web/wallet-discovery.js" — Solana Wallet Standard discovery and connection.
-- "web/wallet-home.js" — homepage wallet panel: connect, disconnect, account switching and read-only SOL/USOL balances.
-- "web/server.js" — also serves `POST /api/rpc`, a read-only Solana Mainnet proxy (getBalance, getTokenAccountsByOwner) whose Helius key stays server-side.
-- "web/tests/server.test.js" — website route, security and markup tests.
-- "web/tests/wallet.test.js" — wallet helper tests.
-- "web/tests/wallet-balances.test.js" — balance formatting tests.
-- "web/tests/wallet-discovery.test.js" — discovery helper tests.
+## E. Historical task scope and implementation instructions
 
-Phase Three included provider detection, trusted-session restoration, address validation, connection and disconnection feedback, provider event handling, accessibility improvements and mobile/embedded-browser guidance. The separate "/wallet" page and its "wallet.html", "wallet.css" and "app.js" files were removed; the homepage panel replaces them.
+The page/navigation task below has been completed as recorded in sections B and C1. The current structure is Overview and the existing wallet panel on `/`, with Token, Principles and Transparency on `/project-information`; the Risks section has been removed. This section preserves the original approved scope and implementation instructions as historical context.
 
-4. Token protection
+The next implementation task, approved by the owner, is to create a dedicated **Project Information** page and reorganize the existing homepage navigation. The approved content and destinations are:
 
-The existing UnitedSOLANA token is already deployed on Solana Mainnet.
+**Homepage**
 
-- Name: UnitedSOLANA
-- Symbol: USOL
-- Mint: "FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG"
-- Decimals: 9
-- Initial supply: 1,000,000,000 USOL
-- Mint authority: revoked
-- Freeze authority: revoked
+- Keep Overview on the homepage.
+- Relocate the detailed Token, Principles, Transparency, and Risks content to the Project Information page.
+- Preserve the existing wallet panel and its functionality.
 
-Token configuration, deployment records, metadata and verification tooling are protected. Website agents must not modify them.
+**Project Information page**
 
-Do not invent prices, liquidity, trading volume, market capitalization, exchange listings, partnerships, audits or utilities.
+1. Token
+2. Principles
+3. Transparency
+4. Risks
 
-5. Recorded verification
+**Navigation**
 
-The previous Phase Three handover recorded these results:
+- Overview → homepage (`/#overview`).
+- Token → Project Information at `#token`.
+- Principles → Project Information at `#principles`.
+- Transparency → Project Information at `#transparency`.
+- Risks → Project Information at `#risks`.
 
-Test| Recorded result
-"node --test web/tests/server.test.js web/tests/wallet.test.js"| 19/19 passed
-"npm run test:offline"| 14/14 passed
+The stable page URL documented for implementation is `/project-information`; therefore, the section links are `/project-information#token`, `/project-information#principles`, `/project-information#transparency`, and `/project-information#risks`.
 
-These are historical recorded results, not a claim that the tests were rerun during this documentation update.
+Preserve existing copy and factual meaning, design, responsiveness, accessibility, and wallet functionality. Direct section links, browser refresh, and back/forward navigation must work. Review the current route allowlist and tests before implementation; add and test the required route behavior without weakening the server's restrictions.
 
-Automated preview checks recorded successful homepage and embedded wallet-page checks. A real Phantom connection on a physical device was not verified.
+Use the approved updated development baseline, then create/use a **separate feature branch** for website implementation. Do not implement on this documentation branch. GitHub is the source of truth. GitHub Copilot is used for documentation and instruction maintenance; Base44 is currently used for website implementation. Review all changes and test results before any merge or deployment. Obtain owner approval before merging or deploying.
 
-Manual Phantom testing remains outstanding:
+## F. Safety and approval requirements
 
-- Desktop Phantom extension connection and disconnection.
-- Account-change behaviour.
-- Phantom in-app browser testing on a phone.
-- Manual clipboard copy check.
-- Accessibility testing with keyboard and assistive technology.
+- Do not modify token configuration, deployment records, metadata references, authority records, transaction signatures, or blockchain scripts.
+- Do not introduce signing, transactions, swaps, transfers, or payment functionality without separate owner approval and review.
+- Do not remove or regress existing wallet functionality.
+- Do not merge or deploy without owner approval. Do not commit or push without explicit authorization.
+- Do not claim tests passed unless the exact tests were executed. Separate automated results from manual, device, and live-chain testing.
+- Do not claim initial supply is circulating supply or add unsupported utility, trading, liquidity, listing, partnership, audit, price, or market claims.
+- Preserve existing work and handover history.
 
-6. v0 implementation workflow
+## CURRENT HANDOVER STATUS
 
-Before starting implementation, v0 must read:
-
-1. "AGENT.md"
-2. "agent/SKILL.md"
-3. "agent/WEBSITE_ARCHITECTURE.md"
-4. "agent/HANDOVER.md"
-5. "agent/V0_INSTRUCTIONS.md"
-
-The v0 guide defines implementation responsibilities, scope restrictions and credit-conscious working rules.
-
-The documentation branch is not the website implementation branch.
-
-Before website implementation:
-
-1. Confirm the current repository and branch.
-2. Obtain owner approval for the specific implementation task.
-3. Use a separate development branch.
-4. Make only the requested changes.
-5. Test and review the changes.
-6. Use Vercel preview for review when configured.
-7. Obtain approval before merging into "Davidic-core/fix-website".
-8. Obtain separate approval before transferring changes to "Snr-Dave/usol-token".
-9. Obtain explicit approval before production deployment.
-
-7. Rules that always apply
-
-- Keep website source and assets inside "web/".
-- Preserve working functionality unless an approved change requires otherwise.
-- Never request, store or transmit seed phrases or private keys.
-- Never introduce custodial wallet functionality or server-side signing.
-- Do not implement balances, signing, swaps, transfers or payments without separate approval.
-- Do not modify token deployment, authority, metadata or verification records.
-- Do not commit, push, merge, publish or deploy without explicit approval.
-- Report test results honestly and identify anything not verified.
-- Keep implementation small and avoid unnecessary credit usage.
-
-8. Next starting point
-
-The immediate task is to finish reviewing the documentation updates on "docs/v0-vercel-handover".
-
-After the documentation is reviewed and approved, merge it into the owner's "fix-website" branch only with explicit approval.
-
-Then prepare the v0 project using the approved working branch and a separate development branch.
-
-No new website implementation, token transaction capability or production deployment is authorized merely by this handover.
+- **Previous work:** The verified recent history implements the current Wallet Standard wallet experience, read-only balances, restricted RPC proxy, and related server/test updates; the history and its limitations are summarized in section D.
+- **Current project state:** The Project Information page and navigation reorganization are implemented on `feat/project-information-page` (three sections; Risks removed). Documentation is updated in the same branch. Automated tests and builds were not run after the change, per owner instruction.
+- **Documentation update:** Corrections to `agent/SKILL.md` and `agent/WEBSITE_ARCHITECTURE.md` were committed on `feat/usol-wallet-theme` as `3e9ae247d600d38531f5dda422fbc689ac97ac11`.
+- **Next responsible workflow:** The intended next development repository is `dave-clouds/usol-token`. The cross-account transfer is not complete until its PR is merged and verified; confirm that status before treating the transfer as complete.
+- **Outstanding decisions:** No further merge or production deployment is authorized. No additional transaction feature is approved. No current live deployment or manual real-wallet/device test has been verified.
+- **Latest verified update:** 2026-11-13.

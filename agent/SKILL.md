@@ -17,49 +17,18 @@ This repository also contains token verification/deployment records and CLI tool
 Repository ownership
 
 - Canonical upstream: "Snr-Dave/usol-token"
-- Canonical integration branch: "fix-website"
-- Owner's working fork: "Davidic-core/usol-token"
-- Working integration branch: "fix-website"
-- Documentation update branch: "docs/v0-vercel-handover"
+- Verified working repository: "davidcloud001/usol-token", a fork of "Snr-Dave/usol-token".
+- The GitHub default branch observed on 2026-11-13 is "feat/usol-wallet-theme".
+- Verify current remotes and branch for each task; do not rely on outdated names or assume an integration branch.
 
-GitHub is the source of truth for repository files, branches, commits, and approved changes.
-
-Never assume changes in the working fork have automatically reached the canonical repository.
+GitHub is the source of truth for repository files, branches, commits, reviews, and approved changes. Never assume that changes in a working fork have reached the canonical upstream.
 
 Development tools and responsibilities
 
-GitHub
-
-- Source control, documentation, branch management, code review, and version history.
-- Approved changes are reviewed before merging or publishing.
-
-GitHub Copilot
-
-- Repository inspection, documentation updates, code assistance, and specifically authorized repository tasks.
-- Must follow the user's exact file, branch, and publishing authorization.
-- Must not infer permission to modify website code from a documentation-only request.
-
-v0
-
-- Planned primary website development and integration agent.
-- May be used for approved website design, implementation, and integration tasks after repository access is configured.
-- Must follow root instructions, architecture documentation, and phase approval gates.
-- Must not independently expand scope, change protected token tooling, or publish unapproved work.
-
-Vercel
-
-- Planned website preview and hosting platform.
-- Preview deployments are for review and testing.
-- Production deployment requires separate explicit approval.
-
-Acode
-
-- Local development, terminal commands, Git operations, code inspection, and manual testing.
-- May be used to clone the working fork and perform local development when needed.
-
-Do not describe Base44 or Bolt.new as the current primary website development workflow. Historical references may remain where necessary to explain earlier project decisions.
-
-Do not assume v0 has imported the repository, Vercel is configured, or production hosting is active until verified.
+- GitHub Copilot is used for project documentation and agent-instruction maintenance.
+- Base44 is currently used for website implementation. Implementation must use a separate feature branch based on the approved updated development baseline.
+- Review changes before merging or deployment; obtain owner approval before either action.
+- Older references to v0, Vercel, or Acode are historical unless independently verified as current. Do not assume hosting or preview deployment is configured.
 
 3. Mandatory cold-start workflow
 
@@ -93,28 +62,15 @@ The assigned website development agent is responsible for inspecting the actual 
 
 The agent must preserve existing work and stop at approval gates.
 
-v0
+Website implementation agent
 
-v0 is the planned primary website development and integration agent.
+Base44 is currently used for approved website implementation. Any implementation agent or developer must inspect the actual repository and relevant files, follow "AGENT.md", this manual, "WEBSITE_ARCHITECTURE.md", and "HANDOVER.md", confirm the current repository and branch, work on a separate feature branch based on the approved updated development baseline, preserve the static architecture unless migration is separately approved, protect token tooling, and implement only the approved scope.
 
-When assigned a task, it must:
-
-- Inspect the actual repository and relevant files before proposing changes.
-- Follow "AGENT.md", this manual, "WEBSITE_ARCHITECTURE.md", and "HANDOVER.md".
-- Confirm the correct repository and branch.
-- Use a dedicated development branch for substantial feature work.
-- Preserve the existing static website architecture unless a migration is separately approved.
-- Avoid modifying token deployment and verification tooling.
-- Implement only the approved scope.
-- Report changed files, tests, limitations, and security considerations.
-
-v0 must not assume that permission to build a preview includes permission to merge or deploy to production.
+"agent/V0_INSTRUCTIONS.md" retains useful implementation and security rules from the earlier v0 workflow. It is not a requirement to use v0; read it as general website implementation guidance, including when using Base44 or another owner-approved workflow.
 
 GitHub Copilot
 
-Copilot is used for documentation, repository assistance, code review, and explicitly authorized code tasks.
-
-It must not independently rebuild the website or expand a documentation-only task into code changes.
+Copilot is used for project documentation and agent-instruction maintenance. It must not independently implement website changes or expand a documentation-only task into code changes.
 
 User
 
@@ -158,85 +114,13 @@ Approval gate
 - Report the work and wait for the user's decision.
 - Do not begin the next phase without explicit authorization.
 
-6. Current project phases and status
+6. Current project status
 
-The phase status below reflects the project handover dated 2026-11-09. The latest verified branch history and owner-confirmed status take precedence over older descriptions.
+The homepage (`/`) contains the Overview section and the existing wallet panel, which supports Wallet Standard-based discovery, Phantom and Solflare injected fallbacks, connection and disconnection, account-change handling, read-only SOL/USOL balances, and a restricted server-side RPC proxy. The Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website. See "agent/HANDOVER.md" for code references, exact test results, and manual/live checks that remain unverified.
 
-Phase One — Website foundation
+The owner-approved Project Information page is implemented on the feature branch `feat/project-information-page` (Base44 working branch `project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`). The page at `/project-information` contains three sections — Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`) — while Overview stays on the homepage. The dedicated Risks section was removed from the website at owner instruction, along with its navigation entry and links. Navigation destinations, section anchors, and browser-history behavior are documented in "agent/WEBSITE_ARCHITECTURE.md" section 8 and "agent/HANDOVER.md".
 
-Status: Completed.
-
-Responsive public homepage and existing Phantom wallet page foundation.
-
-Phase Two — Token information and branding
-
-Status: Completed.
-
-Token information section, navigation improvements, branding, mint-address copy functionality, and Solscan links.
-
-Phase Three — Phantom wallet connection
-
-Status: Implemented and merged into the working "fix-website" branch.
-
-The GitHub branch history contains a merge commit titled:
-
-"Implement Phantom-only wallet connection phase."
-
-This phase is limited to Phantom wallet connection and disconnection, validated public-address display, connection states, and error handling.
-
-Verification distinction:
-
-- Automated and mocked verification was previously reported.
-- A successful real-device Phantom connection and disconnection test has not been confirmed.
-- Do not claim new tests were run unless actually executed.
-
-Phase Three does not implement balances, signing, transfers, swaps, payments, or transaction submission.
-
-Phase Four — Wallet balances
-
-Status: Proposed, not implemented.
-
-Potential scope:
-
-- Prominent homepage wallet entry point.
-- Phantom connection, with any additional wallet providers separately assessed and approved.
-- Read-only SOL balance display.
-- Read-only USOL token balance display.
-- Loading, disconnected, unavailable, and error states.
-
-This phase requires separate owner approval before implementation.
-
-Phase Five — USOL swaps
-
-Status: Proposed, not implemented.
-
-Potential scope:
-
-- SOL-to-USOL swaps.
-- USOL-to-SOL swaps.
-- Investigation of Jupiter integration and verified swap routes.
-- Transaction previews, wallet approval, slippage handling, and error states.
-
-Requires a separate technical and security review and explicit owner approval.
-
-Do not claim USOL swaps are currently functional or available.
-
-Phase Six — Ecosystem and launch readiness
-
-Status: Proposed, not implemented.
-
-Potential scope:
-
-- Verified ecosystem content.
-- Official social links and project information.
-- Documentation and user guidance.
-- Domain configuration.
-- Hosting and launch readiness.
-- Further integrations after approval.
-
-Do not invent completed features, domain ownership, hosting status, or live integrations.
-
-A phase may be divided into smaller approved increments. No phase automatically authorizes the next one.
+Signing, transactions, swaps, transfers, payments, and other features remain unapproved unless separately authorized. Do not treat the page/navigation task as approval for them.
 
 7. Website architecture and repository safety
 
@@ -264,23 +148,11 @@ Never commit credentials, seed phrases, private keys, access tokens, or other se
 
 8. Wallet functionality and security boundaries
 
-Phase Three is Phantom-only and connection-only.
+The current website supports Solana Wallet Standard discovery, injected Phantom and Solflare fallbacks, user-initiated connection and disconnection, validated public address display, account-change handling, and read-only SOL/USOL balances through a restricted server-side RPC proxy. See "agent/HANDOVER.md" for code references, exact automated test results, and manual/live testing that remains unverified.
 
-Its scope includes:
+Other compatible Wallet Standard Solana wallets may be discovered. Do not claim a provider's real-world compatibility without testing. No Backpack-specific integration is present in the inspected code.
 
-- Phantom provider detection.
-- User-initiated connection and disconnection.
-- Validated public wallet address display.
-- Connection status and understandable error states.
-- Mobile and embedded-browser guidance.
-
-Other wallet providers, including Solflare and Backpack, require a separately reviewed and approved increment.
-
-Balance display is not part of Phase Three. It is proposed for Phase Four.
-
-Transaction signing, message signing, transfers, swaps, payments, and transaction submission are not part of Phase Three or Phase Four.
-
-Any later transaction feature requires a separate proposal, security review, and explicit approval consistent with root "AGENT.md".
+The current wallet flow does not sign messages or transactions, transfer tokens, execute swaps, or process payments. Any such capability requires a separate proposal, technical/security review, and explicit approval consistent with root "AGENT.md".
 
 Never request, collect, store, or transmit seed phrases or private keys. Never sign using project-owned private keys or add server-side signing.
 
@@ -317,49 +189,29 @@ For website changes, testing may include:
 - Wallet-provider tests using mocks.
 - Security and dependency review.
 
-For future balance functionality, use read-only data retrieval and test unavailable RPC responses, missing token accounts, stale values, and errors.
+For changes to balance functionality, use read-only data retrieval and test unavailable RPC responses, missing token accounts, stale values, and errors.
 
-For future swap functionality, use mock or quote-only tests where possible. Never submit real transactions during automated tests.
+For any separately approved swap functionality, use mock or quote-only tests where possible. Never submit real transactions during automated tests.
 
 Do not claim a test passed unless it was executed. Do not claim live Mainnet verification based only on fixtures.
 
-11. GitHub, v0, and Vercel workflow
+11. GitHub, Copilot, and Base44 workflow
 
-The intended workflow is:
+1. Verify the current repository, remotes, branch, and worktree before editing.
+2. Use GitHub as the source of truth and GitHub Copilot for documentation and agent-instruction maintenance.
+3. Use Base44 for approved website implementation on a separate feature branch based on the approved updated development baseline.
+4. Review the complete diff and actual test results before merging or deployment.
+5. Obtain explicit owner approval before merge or deployment. Do not commit or push without explicit authorization.
 
-1. Start from the "Davidic-core/usol-token" working fork.
-2. Confirm the correct branch before editing.
-3. Use dedicated development branches for substantial changes.
-4. Use v0 for approved website implementation and integration.
-5. Use Vercel preview deployments when configured.
-6. Review the preview on mobile and desktop.
-7. Run appropriate tests and inspect the complete diff.
-8. Merge approved work into "Davidic-core/fix-website".
-9. Transfer approved changes to "Snr-Dave/fix-website" only after explicit owner authorization.
-10. Deploy to production only after separate explicit approval.
-
-Do not assume v0 repository access, Vercel configuration, environment variables, domain ownership, or production deployment exists until verified.
-
-A preview deployment is not production approval.
-
-Never allow experimental changes to overwrite the canonical production branch.
+Do not assume an integration branch, preview environment, hosting provider, credentials, domain, or production deployment is configured. Verify current facts before use. A preview, if later configured and approved, is not production approval.
 
 12. Documentation and handover
 
 Keep documentation useful to a new agent without prior conversation history.
 
-After an approved phase, update only documentation files authorized by the user.
+Whenever an agent completes a significant task or hands work to another agent, it must update "agent/HANDOVER.md" with verified changes, current status, outstanding work, relevant branch information, and next steps. Keep the handover concise and useful, preserve earlier history, and do not claim unverified work as complete.
 
-Record:
-
-- Phase name and status.
-- Objective and acceptance criteria.
-- Actual files changed.
-- Actual test commands and results.
-- Decisions and verified sources.
-- Security/privacy review.
-- Known limitations and unresolved questions.
-- Next proposed phase, clearly marked as not authorized.
+Record actual files changed, test commands/results, decisions and verified sources, security/privacy review, limitations, unresolved questions, and next steps. Clearly distinguish approved work from proposals.
 
 Keep phase status consistent across "AGENT.md", "SKILL.md", "WEBSITE_ARCHITECTURE.md", "HANDOVER.md", and "README.md".
 

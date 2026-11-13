@@ -28,15 +28,7 @@ A future possibility is not a current feature or implementation commitment.
 
 3. Repository ownership and architecture constraints
 
-Repository ownership
-
-- Canonical upstream: "Snr-Dave/usol-token"
-- Canonical integration branch: "fix-website"
-- Owner's working fork: "Davidic-core/usol-token"
-- Working integration branch: "fix-website"
-- Documentation update branch: "docs/v0-vercel-handover"
-
-GitHub is the source of truth for approved repository changes.
+Verified working repository: "davidcloud001/usol-token", a fork of canonical upstream "Snr-Dave/usol-token". The current GitHub default branch observed on 2026-11-13 is "feat/usol-wallet-theme". Verify remotes and the current branch for each task; do not assume an integration branch. GitHub is the source of truth for approved repository changes.
 
 Existing architecture
 
@@ -57,7 +49,7 @@ The existing project includes:
 
 Inspect the actual branch before relying on this list as a complete inventory.
 
-The homepage includes the Phase Two token information section and the Phase Three wallet panel: Wallet Standard discovery, connect/disconnect, account switching and read-only SOL/USOL balances.
+The homepage (`/`) contains the Overview section and the existing wallet panel: Wallet Standard discovery, Phantom/Solflare injected fallbacks, connect/disconnect, account switching, and read-only SOL/USOL balances. The separate Project Information page (`/project-information`) contains Token, Principles, and Transparency. The dedicated Risks section has been removed from the website.
 
 The homepage must not be assumed to contain swap functionality.
 
@@ -73,36 +65,11 @@ Repository constraints
 
 4. Development tools and workflow
 
-The project uses the following tools:
-
-GitHub
-
-- Source control, repository history, documentation, and code review.
-- Canonical repository: "Snr-Dave/usol-token".
-- Working fork: "Davidic-core/usol-token".
-
-GitHub Copilot
-
-- Documentation, repository inspection, code assistance, and approved repository tasks.
-
-v0
-
-- Planned primary website development and integration agent.
-- Must follow the project's root instructions, architecture, and phase approvals.
-
-Vercel
-
-- Planned preview deployment and hosting platform.
-- Preview deployments are used for review and testing.
-- Production deployment requires explicit owner approval.
-
-Acode
-
-- Local development, repository cloning, terminal commands, Git operations, and manual testing.
-
-Do not assume that v0 has imported the repository or that Vercel has been configured.
-
-Do not describe Base44 or Bolt.new as the current primary development workflow. Historical references may remain where needed.
+- GitHub is the source of truth for repository files, branches, reviews, and approved changes.
+- GitHub Copilot is used for project documentation and agent-instruction maintenance.
+- Base44 is currently used for approved website implementation. Implementation takes place on a separate feature branch based on the approved updated development baseline.
+- Review changes before merging or deployment; obtain owner approval before either action.
+- Older references to v0, Vercel, or Acode are historical unless independently verified as current. Do not assume hosting or preview deployment is configured.
 
 5. Recommended technology
 
@@ -152,39 +119,45 @@ Keep the current entry points and server behavior intact unless an approved chan
 
 7. Current website content and homepage structure
 
-Recommended mobile-first homepage sections:
+Current mobile-first website structure:
 
-1. Header: official logo, UnitedSOLANA identity, accessible navigation.
-2. Hero: concise and factual project introduction.
-3. Project overview: verified project purpose and status.
-4. Token information: network, name, symbol, canonical mint, decimals, and recorded supply.
-5. Verification resources: confirmed explorer and official links.
-6. Wallet entry point: approved wallet connection functionality when the relevant phase permits it.
-7. Risk and transparency: appropriate cryptocurrency risk disclosure.
-8. Footer: approved project information and verified links.
+1. Shared header: official logo, UnitedSOLANA identity, and accessible navigation.
+2. Homepage (`/`): Overview section and existing wallet panel.
+3. Project Information page (`/project-information`): Token, Principles, and Transparency sections.
+4. Shared footer: approved project information and verified links.
+
+The dedicated Risks section has been removed from the website. Do not reintroduce it as a page section or navigation destination.
 
 Do not invent missing information or use placeholders that could be mistaken for factual claims.
 
 Public pages should remain accessible without connecting a wallet.
 
-8. Navigation and proposed pages
+8. Project Information page and navigation (implemented)
 
-A lightweight single-page navigation is sufficient for the current informational website.
+The owner-approved page and navigation reorganization are implemented on feature branch `feat/project-information-page`. A later owner correction removed the dedicated Risks section from the website entirely: it is not on the homepage and not on the Project Information page.
 
-Possible future sections include:
+**Homepage** (`/`)
 
-- Home.
-- About / Project.
-- Token information.
-- Ecosystem, when verified content exists.
-- Resources, when destinations are confirmed.
-- Wallet, subject to approved wallet functionality.
+- Overview section only, at `/#overview`.
+- Wallet panel and all wallet functionality unchanged.
 
-Do not create functional Buy, Trade, Swap, Staking, or Earn routes without separate approval and verified supporting functionality.
+**Project Information page** (`/project-information`)
 
-Avoid dead links, unverified social accounts, and unsupported partnership claims.
+1. Token — `#token`
+2. Principles — `#principles`
+3. Transparency — `#transparency`
 
-If additional routes are approved, define appropriate not-found behavior and test the server's route allowlist.
+Navigation destinations, in both the header dropdown and the footer: Overview → `/#overview`; Token → `/project-information#token`; Principles → `/project-information#principles`; Transparency → `/project-information#transparency`. There is no Risks navigation entry.
+
+Routing: `web/server.js` serves `/project-information` from its explicit `ROUTES` allowlist with the `no-store` cache header. Section anchors are resolved by the browser and never reach the server, so direct access, refresh, and back/forward navigation need no client-side router. Unknown paths keep returning HTTP 404, and the RPC proxy allowlist is unchanged.
+
+The page reuses the existing `styles.css` / `theme.css`, header and footer markup, and the `nav.js` mobile disclosure. It loads `/nav.js`, `/theme.js` and `/token.js` (mint copy) only; it does not load the wallet scripts and carries no wallet panel.
+
+Open item for the owner: root `AGENT.md` section 7 asks for appropriate risk disclosures, while the dedicated risk section is now removed. Current risk wording is limited to the footer note ("not investment advice") and the transparency copy. Confirm whether further risk wording is required.
+
+Preserve existing copy and meaning, visual design, responsive behavior, accessibility, and functionality. Direct section links, browser refresh, and back/forward navigation must work.
+
+Do not create functional Buy, Trade, Swap, Staking, or Earn routes without separate approval and verified supporting functionality. Avoid dead links, unverified social accounts, and unsupported partnership claims.
 
 9. Mobile-first and desktop design
 
@@ -249,73 +222,19 @@ If live on-chain or third-party information is introduced in an approved phase, 
 
 Never invent prices, market capitalization, volume, liquidity, listings, partnerships, audits, or utilities.
 
-12. Wallet functionality
+12. Current wallet functionality and security boundaries
 
-Phase Three — Phantom-only connection
+The current homepage wallet panel is implemented, not merely proposed. The website code provides Wallet Standard discovery for Solana wallets, injected Phantom and Solflare fallbacks, user-initiated connection and disconnection, validated public address display, and account-change/external-disconnect handling. Other compatible Wallet Standard wallets may be detected. No Backpack-specific integration is present.
 
-Status: Implemented and merged into the working "fix-website" branch.
+The panel displays read-only SOL and USOL balances. Balance requests go through the local `POST /api/rpc` proxy, which accepts only `getBalance` and `getTokenAccountsByOwner`; the upstream RPC URL and optional Helius key are server-side. The wallet flow does not sign messages or transactions, send transfers, or execute swaps.
 
-The branch history includes the merge commit:
+Automated tests cover discovery, connection/disconnection helpers, account-change events, balance formatting, and proxy behavior using local mocks. The handover records the exact tests run for this documentation update. Real extension, in-app browser, physical-device, and live Mainnet balance testing remain unverified unless separately recorded as performed.
 
-"Implement Phantom-only wallet connection phase."
+Connection and balance display do not authorize any signing, transfers, swaps, purchases, sales, payments, or transaction submission. Any transaction feature requires a separate proposal, technical/security review, and explicit owner approval.
 
-The implementation provides a Phantom-only connection experience, including:
+13. USOL swap integration
 
-- Provider detection.
-- User-initiated connection and disconnection.
-- Validated public address display.
-- Connection status and error handling.
-- Mobile and embedded-browser guidance.
-
-Automated and mock verification was previously reported. Successful real-device Phantom connection and disconnection testing has not been confirmed.
-
-Do not claim additional testing unless performed.
-
-Phase Three does not include:
-
-- SOL or USOL balance display.
-- Transaction signing.
-- Message signing.
-- Token transfers.
-- Swaps.
-- Payments.
-- Transaction submission.
-
-Additional wallet providers
-
-Solflare, Backpack, and other Wallet Standard providers may be considered in a separate approved increment.
-
-Do not describe the existing Phase Three implementation as multi-wallet support.
-
-Future wallet experience
-
-A prominent homepage wallet entry point and a dedicated wallet dashboard may be proposed for a later phase.
-
-Any such work must preserve non-custodial behavior, privacy, and user-controlled wallet approval.
-
-13. Phase Four — Read-only wallet balances
-
-Status: Proposed, not implemented.
-
-Potential functionality:
-
-- Display the connected wallet's SOL balance.
-- Display its USOL token balance.
-- Provide loading, disconnected, unavailable, and error states.
-- Refresh balances safely.
-- Clearly identify the connected wallet.
-
-Balance retrieval must be read-only.
-
-The implementation must account for missing token accounts, RPC failures, stale data, and incorrect wallet/network contexts.
-
-No transaction signing, transfers, swaps, or payments are authorized by this phase.
-
-A separate owner approval is required before implementation.
-
-14. Phase Five — USOL swap integration
-
-Status: Proposed, not implemented.
+Status: Not implemented and not approved.
 
 Potential functionality:
 
@@ -336,11 +255,11 @@ All transactions must be reviewed and approved by the user's connected wallet.
 
 Never claim a pair, route, pool, or exchange listing exists without verification.
 
-This phase requires a separate technical and security review and explicit owner approval.
+Any future swap proposal requires a separate technical and security review and explicit owner approval.
 
 No real transaction may be submitted as part of automated testing.
 
-15. Phase Six — Ecosystem and launch readiness
+14. Phase Six — Ecosystem and launch readiness
 
 Status: Proposed, not implemented.
 
@@ -359,7 +278,7 @@ Domain ownership, DNS configuration, Vercel setup, and production deployment mus
 
 Each external service and launch action requires approval.
 
-16. Security and privacy requirements
+15. Security and privacy requirements
 
 - Follow root "AGENT.md".
 - Keep website code under "web/".
@@ -372,13 +291,13 @@ Each external service and launch action requires approval.
 - Do not transmit wallet addresses to analytics or unrelated services without approved privacy requirements.
 - Render untrusted text using safe DOM APIs.
 - Validate external URLs and use safe link attributes.
-- Do not turn the existing static server into a backend implicitly.
+- Preserve the existing read-only RPC proxy's method restrictions. Do not expand the static server or proxy into additional backend functionality implicitly.
 - Keep credentials out of source code, examples, bundles, and commits.
 - Do not place secrets in browser environment variables or public build output.
 
 Any future backend or data collection requires a separate architecture, privacy, and security review.
 
-17. Performance, accessibility, and testing
+16. Performance, accessibility, and testing
 
 Prefer optimized local assets and minimal JavaScript.
 
@@ -397,7 +316,7 @@ Testing should include relevant checks from the following list:
 - Error and unavailable-provider handling.
 - Security and dependency review.
 
-For future balance functionality, test missing accounts, stale data, RPC failures, and incorrect wallet contexts.
+For changes to balance functionality, test missing accounts, stale data, RPC failures, and incorrect wallet contexts.
 
 For future swaps, use mocked or quote-only tests wherever possible. Never submit a real transaction in automated tests.
 
@@ -405,71 +324,23 @@ Report commands actually run and their exact outcomes.
 
 Do not claim a test, audit, live verification, or wallet compatibility check without performing it.
 
-18. Hosting, domain, and deployment
+17. Hosting, domain, and deployment
 
-Vercel is the planned preview and hosting platform. Its actual project configuration, repository permissions, environment variables, custom domain, and production deployment status must be verified before being described as active.
+No hosting platform, preview environment, custom domain, or current production deployment was verified during this handover update. Verify these facts before describing or using them.
 
-The intended workflow is:
+GitHub is the source of truth. GitHub Copilot is used for documentation and agent-instruction maintenance. Base44 is currently used for approved website implementation on a separate feature branch based on the approved updated development baseline. Review changes and test results before merging or deployment; owner approval is required before either action.
 
-1. Work in the "Davidic-core/usol-token" fork.
-2. Use a dedicated development branch for substantial website work.
-3. Use v0 for approved implementation and integration.
-4. Use Vercel preview deployments when configured.
-5. Test the preview on mobile and desktop.
-6. Review the complete diff and test results.
-7. Merge approved work into "Davidic-core/fix-website".
-8. Transfer approved changes to "Snr-Dave/fix-website" only with explicit owner authorization.
-9. Deploy to production only after separate explicit owner approval.
+Before any future launch, verify HTTPS, routing, MIME types, caching, security headers, rollback procedures, domain DNS, TLS, privacy, and maintenance ownership. Do not commit hosting credentials or secrets to the repository.
 
-A preview deployment is not a production deployment.
+18. Current status and approved next work
 
-Before launch, verify HTTPS, routing, MIME types, caching, security headers, rollback procedures, domain DNS, TLS, privacy, and maintenance ownership.
+The homepage, wallet capabilities and the Project Information page are implemented as described in sections 7, 8 and 12. The dedicated Risks section was removed at owner instruction. Automated website and offline tests passed during the 2026-11-13 documentation update; the page/navigation change has not been covered by an executed test run — refer to "agent/HANDOVER.md" for exact commands, results, and unverified manual checks.
 
-Do not commit hosting credentials or secrets to the repository.
+The page/navigation work was implemented on feature branch `feat/project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`. Owner review, merge approval, and any deployment remain outstanding.
 
-19. Development phases and acceptance criteria
+Swaps, transactions, signing, transfers, payments, and further ecosystem features are not approved by the page/navigation task. Any such feature requires separate approval and appropriate technical/security review.
 
-Each phase requires separate approval before implementation.
-
-Phase One — Public website foundation
-
-Status: Completed.
-
-Responsive homepage and wallet-page foundation.
-
-Phase Two — Token information
-
-Status: Completed.
-
-Token information, branding, navigation improvements, copy functionality, and Solscan links.
-
-Phase Three — Phantom-only connection
-
-Status: Implemented and merged into the working "fix-website" branch.
-
-The phase is connection-only. Real-device testing remains unconfirmed.
-
-Phase Four — Read-only balances
-
-Status: Proposed, not implemented.
-
-Acceptance criteria must include accurate wallet identification, SOL and USOL balance retrieval, unavailable/error states, read-only behavior, and regression tests.
-
-Phase Five — Swaps
-
-Status: Proposed, not implemented.
-
-Acceptance criteria must include verified routes, quote handling, clear fees and slippage, transaction previews, explicit wallet approval, error handling, and security review.
-
-Phase Six — Ecosystem and launch readiness
-
-Status: Proposed, not implemented.
-
-Acceptance criteria must include verified resources, approved content, operational ownership, hosting/domain verification, accessibility and security review, and explicit production approval.
-
-A phase may be subdivided into smaller increments. Approval for one increment does not authorize the remaining phase or the next phase.
-
-20. Change management and maintenance
+19. Change management and maintenance
 
 Before editing an existing file, read it completely and inspect its references, callers, routes, and tests.
 
@@ -485,7 +356,7 @@ Review the complete diff for accidental changes to:
 - Existing website behavior.
 - Credentials and secrets.
 
-After each approved phase, update documentation with the actual status, completed criteria, changed files, tests, decisions, limitations, and next proposed work.
+Whenever an agent completes a significant task or hands work to another agent, update "agent/HANDOVER.md" with verified changes, current status, outstanding work, relevant branch information, and next steps. Keep it concise and factual; preserve prior history and do not claim unverified work as complete.
 
 Keep documentation consistent across:
 

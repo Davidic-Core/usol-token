@@ -112,16 +112,15 @@ test("homepage serves the public foundation with local scripts and wallet suppor
   const html = await response.text();
   assert.match(html, /UnitedSOLANA/);
   assert.match(html, /id="overview"/);
-  assert.match(html, /id="token"/);
-  assert.match(html, /id="principles"/);
-  assert.match(html, /id="transparency"/);
-  assert.match(html, /id="risk"/);
+  // The detailed Token, Principles and Transparency sections live on
+  // /project-information; the homepage keeps Overview only.
+  assert.doesNotMatch(html, /id="(token|principles|transparency|risks?)"/);
+  assert.doesNotMatch(html, /#risks?[,)"]/);
   assert.match(html, /\/assets\/brand\/usol-logo\.png/);
   assert.match(html, /recorded metadata description/i);
   assert.doesNotMatch(html, /dedicated token record follows|separate reviewed release/i);
   assert.match(html, /id="homepage-connect"[^>]*>Connect Wallet<\/button>/);
   assert.match(html, /id="wallet-panel-title">Read-only wallet balances\.<\/h2>/);
-  assert.match(html, /FeTG1ezkUZoNkPfs9XmXUCRJpK4dsT7VDRJFRmX7sGMG/);
   assert.match(html, /\/wallet-home\.js/);
   assert.match(html, /id="theme-toggle"/);
   assert.match(html, /\/theme\.css/);
@@ -134,7 +133,7 @@ test("homepage serves the public foundation with local scripts and wallet suppor
   const scriptTags = html.match(/<script\b[^>]*>/gi) || [];
   assert.deepEqual(
     scriptTags.map((tag) => /src="([^"]+)"/.exec(tag)[1]),
-      ["/nav.js", "/wallet-core.js", "/wallet-discovery.js", "/wallet-home.js", "/theme.js", "/token.js"]
+      ["/nav.js", "/wallet-core.js", "/wallet-discovery.js", "/wallet-home.js", "/theme.js"]
 
   );
   assert.doesNotMatch(html, /<script\b(?![^>]*\bsrc=)/i);
@@ -167,9 +166,9 @@ test("mobile navigation is a local disclosure dropdown", async () => {
 });
 
 test("token section presents the pinned canonical facts", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/project-information`)).text();
 
-  assert.match(html, /href="#token"/);
+  assert.match(html, /href="\/project-information#token"/);
   assert.match(html, /Solana Mainnet/);
   assert.match(html, /Classic SPL Token/);
   assert.match(html, /<dt>Token name<\/dt>\s*<dd>UnitedSOLANA<\/dd>/);
@@ -204,7 +203,7 @@ test("token section presents the pinned canonical facts", async () => {
 });
 
 test("token section separates initial supply from circulating supply and records revoked authorities", async () => {
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/project-information`)).text();
 
   assert.match(html, /<h3>Initial supply<\/h3>/);
   assert.match(html, /<h3>Circulating supply<\/h3>/);
@@ -226,7 +225,7 @@ test("token section separates initial supply from circulating supply and records
 
 test("website token facts match the pinned token configuration", async () => {
   const config = fs.readFileSync(path.join(__dirname, "..", "..", "config", "mainnet.js"), "utf8");
-  const html = await (await fetch(`${base}/`)).text();
+  const html = await (await fetch(`${base}/project-information`)).text();
 
   const mint = /mintAddress:\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"/.exec(config);
   const metadata = /metadataAccount:\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"/.exec(config);
@@ -236,8 +235,8 @@ test("website token facts match the pinned token configuration", async () => {
   assert.ok(mint && metadata && decimals && supply, "pinned configuration exposes the expected fields");
 
   const formattedSupply = Number(supply[1].replace(/_/g, "")).toLocaleString("en-US");
-  assert.ok(html.includes(mint[1]), "homepage shows the pinned mint address");
-  assert.ok(html.includes(metadata[1]), "homepage shows the pinned metadata account");
+  assert.ok(html.includes(mint[1]), "the project information page shows the pinned mint address");
+  assert.ok(html.includes(metadata[1]), "the project information page shows the pinned metadata account");
   assert.match(html, new RegExp(`<dt>Decimals</dt>\\s*<dd>${decimals[1]}</dd>`));
   assert.match(html, new RegExp(`<dt>Initial supply</dt>\\s*<dd>${formattedSupply} USOL</dd>`));
 });
@@ -254,6 +253,40 @@ test("mint copy script is served and contains no wallet or transaction code", as
     script,
     /signTransaction|signMessage|sendTransaction|window\.phantom|Keypair|privateKey|fetch\(|XMLHttpRequest/
   );
+});
+
+test("project information page is served with its three section anchors", async () => {
+  for (const route of [
+    "/project-information",
+    "/project-information#token",
+    "/project-information#principles",
+    "/project-information#transparency"
+  ]) {
+    const response = await fetch(`${base}${route}`);
+    assert.equal(response.status, 200, `${route} should be served`);
+    assert.match(response.headers.get("content-type"), /text\/html/);
+  }
+
+  const html = await (await fetch(`${base}/project-information`)).text();
+  assert.match(html, /id="token"/);
+  assert.match(html, /id="principles"/);
+  assert.match(html, /id="transparency"/);
+  assert.doesNotMatch(html, /id="risks?"/);
+
+  // Section destinations required by the approved navigation.
+  assert.match(html, /<a href="\/project-information#token">Token<\/a>/);
+  assert.match(html, /<a href="\/project-information#principles">Principles<\/a>/);
+  assert.match(html, /<a href="\/project-information#transparency">Transparency<\/a>/);
+  assert.match(html, /<a href="\/#overview">Overview<\/a>/);
+
+  // The risks section and its links were removed from the site.
+  assert.doesNotMatch(html, /#risks?["<]/);
+  const home = await (await fetch(`${base}/`)).text();
+  assert.doesNotMatch(home, /id="risks?"|#risks?["<]/);
+
+  // The information page is read-only: no wallet markup or wallet scripts.
+  assert.doesNotMatch(html, /wallet-core\.js|wallet-discovery\.js|wallet-home\.js/);
+  assert.doesNotMatch(html, /id="homepage-connect"/);
 });
 
 test("the removed wallet page and its exclusive assets are no longer served", async () => {
