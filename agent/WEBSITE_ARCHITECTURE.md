@@ -127,33 +127,37 @@ Recommended mobile-first homepage sections:
 4. Token information: network, name, symbol, canonical mint, decimals, and recorded supply.
 5. Verification resources: confirmed explorer and official links.
 6. Wallet entry point: approved wallet connection functionality when the relevant phase permits it.
-7. Risk and transparency: appropriate cryptocurrency risk disclosure.
+7. Transparency and risk wording: appropriate cryptocurrency risk wording. The dedicated Risks section was removed from the website at owner instruction; see section 8.
 8. Footer: approved project information and verified links.
 
 Do not invent missing information or use placeholders that could be mistaken for factual claims.
 
 Public pages should remain accessible without connecting a wallet.
 
-8. Approved Project Information page and navigation
+8. Project Information page and navigation (implemented)
 
-The current homepage and its same-page navigation are implemented; the separate Project Information page is not. The owner has approved creating the page and reorganizing navigation as follows:
+The owner-approved page and navigation reorganization are implemented on feature branch `feat/project-information-page`. A later owner correction removed the dedicated Risks section from the website entirely: it is not on the homepage and not on the Project Information page.
 
-**Homepage**
+**Homepage** (`/`)
 
-- Keep Overview on the homepage at `/#overview`.
-- Move the detailed Token, Principles, Transparency, and Risks sections to the Project Information page.
-- Preserve the existing wallet panel and all wallet functionality on the website.
+- Overview section only, at `/#overview`.
+- Wallet panel and all wallet functionality unchanged.
 
-**Project Information page**
+**Project Information page** (`/project-information`)
 
 1. Token — `#token`
 2. Principles — `#principles`
 3. Transparency — `#transparency`
-4. Risks — `#risks`
 
-Use `/project-information` as the page path. Navigation destinations are `/project-information#token`, `/project-information#principles`, `/project-information#transparency`, and `/project-information#risks`; Overview returns to `/#overview`.
+Navigation destinations, in both the header dropdown and the footer: Overview → `/#overview`; Token → `/project-information#token`; Principles → `/project-information#principles`; Transparency → `/project-information#transparency`. There is no Risks navigation entry.
 
-Preserve existing copy and meaning, visual design, responsive behavior, accessibility, and functionality. Direct section links, browser refresh, and back/forward navigation must work. Respect native browser history and ensure deep links load the correct document and section. Inspect and update the static server's explicit route allowlist as needed; retain its not-found behavior and test both page and deep links.
+Routing: `web/server.js` serves `/project-information` from its explicit `ROUTES` allowlist with the `no-store` cache header. Section anchors are resolved by the browser and never reach the server, so direct access, refresh, and back/forward navigation need no client-side router. Unknown paths keep returning HTTP 404, and the RPC proxy allowlist is unchanged.
+
+The page reuses the existing `styles.css` / `theme.css`, header and footer markup, and the `nav.js` mobile disclosure. It loads `/nav.js`, `/theme.js` and `/token.js` (mint copy) only; it does not load the wallet scripts and carries no wallet panel.
+
+Open item for the owner: root `AGENT.md` section 7 asks for appropriate risk disclosures, while the dedicated risk section is now removed. Current risk wording is limited to the footer note ("not investment advice") and the transparency copy. Confirm whether further risk wording is required.
+
+Preserve existing copy and meaning, visual design, responsive behavior, accessibility, and functionality. Direct section links, browser refresh, and back/forward navigation must work.
 
 Do not create functional Buy, Trade, Swap, Staking, or Earn routes without separate approval and verified supporting functionality. Avoid dead links, unverified social accounts, and unsupported partnership claims.
 
@@ -332,9 +336,9 @@ Before any future launch, verify HTTPS, routing, MIME types, caching, security h
 
 18. Current status and approved next work
 
-The current homepage and wallet capabilities are implemented as described in sections 7 and 12; the Project Information page is not implemented. Automated website and offline tests passed during the 2026-11-13 documentation update; refer to "agent/HANDOVER.md" for exact commands, results, and unverified manual checks.
+The homepage, wallet capabilities and the Project Information page are implemented as described in sections 7, 8 and 12. The dedicated Risks section was removed at owner instruction. Automated website and offline tests passed during the 2026-11-13 documentation update; the page/navigation change has not been covered by an executed test run — refer to "agent/HANDOVER.md" for exact commands, results, and unverified manual checks.
 
-The owner has approved the next implementation task: keep Overview on the homepage and move detailed Token, Principles, Transparency, and Risks content to `/project-information`, with the section anchors and navigation destinations in section 8. Preserve existing design, responsiveness, accessibility, and wallet functionality. Use a separate feature branch from the approved updated development baseline.
+The page/navigation work was implemented on feature branch `feat/project-information-page`, based on `feat/usol-wallet-theme` commit `b1fb8e8`. Owner review, merge approval, and any deployment remain outstanding.
 
 Swaps, transactions, signing, transfers, payments, and further ecosystem features are not approved by the page/navigation task. Any such feature requires separate approval and appropriate technical/security review.
 

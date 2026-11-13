@@ -14,18 +14,19 @@ This is the living, factual handover for any developer, agent, or assistant taki
 ## B. Current project status
 
 - The static, dependency-free website and read-only wallet experience described below are implemented in `web/`.
-- The existing homepage currently contains Overview, Token, Principles, Transparency, and Risk sections, plus wallet connection and read-only balance UI. A separate Project Information page and the requested navigation reorganization are **not implemented**.
+- The homepage now contains the Overview section and the wallet panel (wallet connection and read-only balances). The dedicated Project Information page at `/project-information` contains the Token, Principles, and Transparency sections. The dedicated Risks section was removed from the website at owner instruction, including its navigation entry, content and links.
 - The site has server-side RPC proxying restricted to the two read-only balance methods used by the wallet panel.
-- **Approved next implementation task:** create the Project Information page and reorganize navigation as specified in section E. The owner approved this task in the instruction that established this handover update. Implementation has not started.
+- **Implemented task:** the Project Information page and navigation reorganization described in section E are implemented on branch `feat/project-information-page`, then corrected at owner instruction to three sections with Risks removed. See section C1 for files, routing and verification status.
 - The six-file documentation update is complete. Commit `73b5d14db3e33a8be60d6729e41d38b93bac1201` is committed and pushed to `davidcloud001/usol-token` on `docs/update-project-guidance`.
-- The next approved task is implementing the Project Information page. The page has not yet been implemented.
+- Owner review of the page/navigation implementation is outstanding. No merge into an integration or default branch, and no production deployment, has been authorized.
 - Website swaps, transfers, signing, payments, and other transaction features are not approved. No merge into an integration or default branch, or production deployment, has been authorized.
 
 ## C. Website implementation status
 
 | Area | Verified implementation status | Verification status |
 |---|---|---|
-| Homepage and navigation | The current homepage is `web/index.html`; it contains the overview and detailed sections, same-page header/footer anchors, and responsive mobile navigation. A separate Project Information page is not implemented. | `npm run test:web` passed during this documentation task (48/48). No visual browser review was performed. |
+| Homepage and navigation | `web/index.html` keeps the Overview section and the wallet panel. The header dropdown and footer link to Overview (`/#overview`) and to Token, Principles and Transparency on `/project-information`; there is no Risks entry. Mobile navigation (`web/nav.js`) is unchanged. | The recorded 48/48 `npm run test:web` result predates this change; the updated suite has not been executed. |
+| Project Information page | `web/project-information.html` serves Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`) through the `ROUTES` allowlist in `web/server.js`. It loads no wallet scripts and contains no Risks section. | Preview checked on 2026-11-13: page and section deep links load, desktop navigation and section anchors resolve, mobile layout collapses to one column with no horizontal overflow. No automated test run. |
 | Token information | Homepage content displays the pinned mint, metadata account, 9 decimals, recorded initial supply, and recorded revoked authority states. It explicitly distinguishes initial from circulating supply and does not present initial supply as circulating. | Website tests check the rendered facts against `config/mainnet.js`; these are local records, not a new live-chain verification. |
 | Wallet discovery | `web/wallet-discovery.js` implements Solana Wallet Standard registration and connection discovery, with injected Phantom and Solflare fallbacks in `web/wallet-home.js`. Other compatible Wallet Standard Solana wallets may be listed. No Backpack-specific integration is present. | Automated discovery tests exist and passed as part of the 48 website tests. |
 | Wallet connection | User-initiated connection, public-address validation, connection status, and errors are implemented. | Mocked automated tests exist and passed. Real wallet approval was not tested. |
@@ -33,10 +34,22 @@ This is the living, factual handover for any developer, agent, or assistant taki
 | Account changes and switching | Standard account-change and injected-provider account/disconnect events are handled; the active address and balances are updated. | Mocked tests exist and passed. Switching accounts in a real wallet was not tested. |
 | SOL and USOL balances | Read-only balances are shown on the homepage. SOL lamports and USOL token-account amounts are formatted by `web/wallet-core.js`; missing USOL accounts display zero. No price or USD value is shown. | Formatting and error tests exist and passed. No live balance retrieval was performed during this task. |
 | Restricted RPC proxy | `web/server.js` serves `POST /api/rpc`, allowing only `getBalance` and `getTokenAccountsByOwner`; the configured upstream endpoint/Helius key remains server-side. The client calls only the local proxy. | Automated tests exercised allowed/blocked methods, malformed requests, upstream errors, and timeouts with a local mock upstream. No live upstream request was performed. |
-| Automated tests | `web/tests/server.test.js`, `wallet.test.js`, `wallet-balances.test.js`, and `wallet-discovery.test.js` exist. The repository's offline verification suite also exists. | `npm run test:web`: 48 passed, 0 failed. `npm run test:offline`: 14/14 passed; it reports no Mainnet RPC or external gateway contacted. Both were run during this documentation task. |
+| Automated tests | `web/tests/server.test.js`, `wallet.test.js`, `wallet-balances.test.js`, and `wallet-discovery.test.js` exist. The repository's offline verification suite also exists. | `npm run test:web`: 48 passed, 0 failed, and `npm run test:offline`: 14/14, both **before** the Project Information page change. `web/tests/server.test.js` was updated for the new structure but not run (owner instruction to conserve credits). |
 | Manual browser and real-device testing | No current evidence in this task verifies cross-browser visual review, Phantom extension use, Solflare use, mobile in-app wallet use, or a physical-device test. | **Untested / not verified.** Do not report these checks as completed. |
 
 These automated results concern the existing application code only; this task did not modify or validate application code changes.
+
+## C1. Project Information page — implementation record (2026-11-13)
+
+- **Branch:** `feat/project-information-page` (Base44 working branch `project-information-page`), based on the approved baseline `feat/usol-wallet-theme` at commit `b1fb8e8a983118f2f3f1b86df028aaaa67627666`, verified against `origin/feat/usol-wallet-theme`.
+- **Created:** `web/project-information.html`.
+- **Modified:** `web/index.html` (Overview kept; Token, Principles, Transparency and Risks sections removed; navigation and footer relinked), `web/server.js` (`/project-information` added to the explicit `ROUTES` allowlist), `web/styles.css` (unused `.risk-panel` / `.risk-list` rules removed), `web/tests/server.test.js` (updated for the new page and routing), `AGENT.md`, `README.md`, `agent/SKILL.md`, `agent/WEBSITE_ARCHITECTURE.md`, and this handover.
+- **Structure:** `/project-information` holds Token (`#token`), Principles (`#principles`) and Transparency (`#transparency`), in that order, with the original copy and links preserved. `/` keeps Overview (`#overview`) and the wallet panel. Header dropdown and footer: `/#overview`, `/project-information#token`, `/project-information#principles`, `/project-information#transparency`. An owner correction removed the dedicated Risks section, its navigation entry and all related links; `#risks` no longer exists.
+- **Routing:** the page is a separate document served from the `ROUTES` allowlist; section hashes never reach the server, so direct links, refresh and browser history rely on normal document navigation with no client-side router. Unknown paths still return 404 and the `/api/rpc` proxy allowlist is unchanged.
+- **Wallet:** unchanged. The information page loads only `/nav.js`, `/theme.js` and `/token.js`; no wallet scripts, no wallet panel, no new wallet permissions or transaction code.
+- **Verification performed (preview, 2026-11-13):** `/` and `/project-information` return 200; `/project-information#token|#principles|#transparency` load and a deep link to `#principles` lands on that section; an unknown path returns 404; both pages expose the four navigation links with no Risks entry; the information page contains the three section IDs and no `risks` ID; it loads only the three scripts above; the mobile render (400 px) uses the dropdown toggle, one column, and no horizontal overflow.
+- **Not run:** `npm run test:web`, `npm run test:offline`, and any build command (owner instruction to conserve credits). The updated `web/tests/server.test.js` has not been executed, so its results are unknown.
+- **Not verified:** browser back/forward was exercised only as ordinary link navigation, not asserted automatically; real-wallet connect/disconnect and balances (require a browser extension); keyboard/assistive-technology and real-device review.
 
 ## D. Previous agent's work
 
@@ -96,7 +109,7 @@ Use the approved updated development baseline, then create/use a **separate feat
 ## CURRENT HANDOVER STATUS
 
 - **Previous work:** The verified recent history implements the current Wallet Standard wallet experience, read-only balances, restricted RPC proxy, and related server/test updates; the history and its limitations are summarized in section D.
-- **Current project state:** The six-file documentation update is complete and committed/pushed as `73b5d14db3e33a8be60d6729e41d38b93bac1201` to `davidcloud001/usol-token` on `docs/update-project-guidance`. The Project Information page remains unimplemented.
-- **Next responsible workflow:** Implement only section E on a separate feature branch based on the approved updated development baseline.
+- **Current project state:** The Project Information page and navigation reorganization are implemented on `feat/project-information-page` (three sections; Risks removed). Documentation is updated in the same branch. Automated tests and builds were not run after the change, per owner instruction.
+- **Next responsible workflow:** Owner review of the complete diff, then explicit authorization before commit, push, merge or deployment. Run `web/tests/server.test.js` when testing is next authorized.
 - **Outstanding decisions:** No merge into an integration/default branch or production deployment is authorized. No additional transaction feature is approved. No current live deployment or manual real-wallet/device test has been verified.
 - **Latest verified update:** 2026-11-13.

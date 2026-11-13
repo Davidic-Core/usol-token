@@ -77,11 +77,13 @@ The wallet panel does not sign messages or transactions, transfer tokens, buy or
 sell tokens, or execute swaps. Future transaction functionality, including token
 swaps, requires separate technical review and explicit owner approval.
 
-The approved next website task is a dedicated Project Information page at
-`/project-information`: keep Overview on the homepage and move detailed Token,
-Principles, Transparency, and Risks content to that page. It is not implemented
-yet. The page structure, navigation destinations, and browser-history
-requirements are recorded in `agent/WEBSITE_ARCHITECTURE.md`.
+The website has a dedicated Project Information page at `/project-information`
+with three sections: Token (`#token`), Principles (`#principles`) and
+Transparency (`#transparency`). The homepage keeps the Overview section and the
+wallet panel. The dedicated Risks section was removed from the website at owner
+instruction, including its navigation entry and links. `web/server.js` serves the
+page from its explicit route allowlist, so direct links, refreshes and browser
+history work. Details are recorded in `agent/WEBSITE_ARCHITECTURE.md` section 8.
 
 Development documentation
 
