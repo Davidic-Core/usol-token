@@ -15,10 +15,11 @@ This is the living, factual handover for any developer, agent, or assistant taki
 
 - The static, dependency-free website and read-only wallet experience described below are implemented in `web/`.
 - The homepage now contains the Overview section and the wallet panel (wallet connection and read-only balances). The dedicated Project Information page at `/project-information` contains the Token, Principles, and Transparency sections. The dedicated Risks section was removed from the website at owner instruction, including its navigation entry, content and links.
+- The documentation corrections in `agent/SKILL.md` and `agent/WEBSITE_ARCHITECTURE.md` were committed on `feat/usol-wallet-theme` as `3e9ae247d600d38531f5dda422fbc689ac97ac11` (`docs: align project guidance with current website structure`).
 - The site has server-side RPC proxying restricted to the two read-only balance methods used by the wallet panel.
 - **Implemented task:** the Project Information page and navigation reorganization described in section E are implemented on branch `feat/project-information-page`, then corrected at owner instruction to three sections with Risks removed. See section C1 for files, routing and verification status.
 - The six-file documentation update is complete. Commit `73b5d14db3e33a8be60d6729e41d38b93bac1201` is committed and pushed to `davidcloud001/usol-token` on `docs/update-project-guidance`.
-- Owner review of the page/navigation implementation is outstanding. No merge into an integration or default branch, and no production deployment, has been authorized.
+- The intended next development repository is `dave-clouds/usol-token`. Transfer to that repository is not complete until the cross-account PR is merged and verified. No transfer completion is claimed here.
 - Website swaps, transfers, signing, payments, and other transaction features are not approved. No merge into an integration or default branch, or production deployment, has been authorized.
 
 ## C. Website implementation status
@@ -65,7 +66,9 @@ The listed work is committed and present in the current branch history. At inspe
 
 **Prior handover record retained (2026-11-09; historical, not current test evidence):** the prior status listed the public website foundation and token information as complete, Phantom-only connection as implemented, and balances, swaps, and launch-readiness as proposed. That status predates the Wallet Standard, balance, and proxy work summarized above and is superseded by current code inspection. It recorded `node --test web/tests/server.test.js web/tests/wallet.test.js` as 19/19 and `npm run test:offline` as 14/14 at that time; these are historical results, distinct from section C's rerun. It also recorded automated preview checks for homepage and embedded wallet-page behavior without enough detail to reproduce them here. The prior manual checklist named desktop Phantom extension connect/disconnect, account-change behavior, Phantom mobile in-app browser, clipboard copying, and keyboard/assistive-technology accessibility. None is claimed complete by this update.
 
-## E. Current task and next agent instructions
+## E. Historical task scope and implementation instructions
+
+The page/navigation task below has been completed as recorded in sections B and C1. The current structure is Overview and the existing wallet panel on `/`, with Token, Principles and Transparency on `/project-information`; the Risks section has been removed. This section preserves the original approved scope and implementation instructions as historical context.
 
 The next implementation task, approved by the owner, is to create a dedicated **Project Information** page and reorganize the existing homepage navigation. The approved content and destinations are:
 
@@ -110,6 +113,7 @@ Use the approved updated development baseline, then create/use a **separate feat
 
 - **Previous work:** The verified recent history implements the current Wallet Standard wallet experience, read-only balances, restricted RPC proxy, and related server/test updates; the history and its limitations are summarized in section D.
 - **Current project state:** The Project Information page and navigation reorganization are implemented on `feat/project-information-page` (three sections; Risks removed). Documentation is updated in the same branch. Automated tests and builds were not run after the change, per owner instruction.
-- **Next responsible workflow:** Owner review of the complete diff, then explicit authorization before commit, push, merge or deployment. Run `web/tests/server.test.js` when testing is next authorized.
-- **Outstanding decisions:** No merge into an integration/default branch or production deployment is authorized. No additional transaction feature is approved. No current live deployment or manual real-wallet/device test has been verified.
+- **Documentation update:** Corrections to `agent/SKILL.md` and `agent/WEBSITE_ARCHITECTURE.md` were committed on `feat/usol-wallet-theme` as `3e9ae247d600d38531f5dda422fbc689ac97ac11`.
+- **Next responsible workflow:** The intended next development repository is `dave-clouds/usol-token`. The cross-account transfer is not complete until its PR is merged and verified; confirm that status before treating the transfer as complete.
+- **Outstanding decisions:** No further merge or production deployment is authorized. No additional transaction feature is approved. No current live deployment or manual real-wallet/device test has been verified.
 - **Latest verified update:** 2026-11-13.
