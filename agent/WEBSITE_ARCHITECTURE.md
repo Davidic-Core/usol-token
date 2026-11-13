@@ -230,7 +230,7 @@ Automated tests cover discovery, connection/disconnection helpers, account-chang
 
 Connection and balance display do not authorize any signing, transfers, swaps, purchases, sales, payments, or transaction submission. Any transaction feature requires a separate proposal, technical/security review, and explicit owner approval.
 
-14. USOL swap integration
+13. USOL swap integration
 
 Status: Not implemented and not approved.
 
@@ -257,7 +257,7 @@ Any future swap proposal requires a separate technical and security review and e
 
 No real transaction may be submitted as part of automated testing.
 
-15. Phase Six — Ecosystem and launch readiness
+14. Phase Six — Ecosystem and launch readiness
 
 Status: Proposed, not implemented.
 
@@ -276,7 +276,7 @@ Domain ownership, DNS configuration, Vercel setup, and production deployment mus
 
 Each external service and launch action requires approval.
 
-16. Security and privacy requirements
+15. Security and privacy requirements
 
 - Follow root "AGENT.md".
 - Keep website code under "web/".
@@ -295,7 +295,7 @@ Each external service and launch action requires approval.
 
 Any future backend or data collection requires a separate architecture, privacy, and security review.
 
-17. Performance, accessibility, and testing
+16. Performance, accessibility, and testing
 
 Prefer optimized local assets and minimal JavaScript.
 
@@ -322,7 +322,7 @@ Report commands actually run and their exact outcomes.
 
 Do not claim a test, audit, live verification, or wallet compatibility check without performing it.
 
-18. Hosting, domain, and deployment
+17. Hosting, domain, and deployment
 
 No hosting platform, preview environment, custom domain, or current production deployment was verified during this handover update. Verify these facts before describing or using them.
 
@@ -330,7 +330,7 @@ GitHub is the source of truth. GitHub Copilot is used for documentation and agen
 
 Before any future launch, verify HTTPS, routing, MIME types, caching, security headers, rollback procedures, domain DNS, TLS, privacy, and maintenance ownership. Do not commit hosting credentials or secrets to the repository.
 
-19. Current status and approved next work
+18. Current status and approved next work
 
 The current homepage and wallet capabilities are implemented as described in sections 7 and 12; the Project Information page is not implemented. Automated website and offline tests passed during the 2026-11-13 documentation update; refer to "agent/HANDOVER.md" for exact commands, results, and unverified manual checks.
 
@@ -338,7 +338,7 @@ The owner has approved the next implementation task: keep Overview on the homepa
 
 Swaps, transactions, signing, transfers, payments, and further ecosystem features are not approved by the page/navigation task. Any such feature requires separate approval and appropriate technical/security review.
 
-20. Change management and maintenance
+19. Change management and maintenance
 
 Before editing an existing file, read it completely and inspect its references, callers, routes, and tests.
 

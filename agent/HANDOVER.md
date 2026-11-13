@@ -17,8 +17,9 @@ This is the living, factual handover for any developer, agent, or assistant taki
 - The existing homepage currently contains Overview, Token, Principles, Transparency, and Risk sections, plus wallet connection and read-only balance UI. A separate Project Information page and the requested navigation reorganization are **not implemented**.
 - The site has server-side RPC proxying restricted to the two read-only balance methods used by the wallet panel.
 - **Approved next implementation task:** create the Project Information page and reorganize navigation as specified in section E. The owner approved this task in the instruction that established this handover update. Implementation has not started.
-- This documentation/instruction update is the current task. Its edits are uncommitted on `docs/update-project-guidance`; the working tree was clean before this task.
-- Website swaps, transfers, signing, payments, and other transaction features are not approved. Production deployment, merging, and publishing are not approved by this handover.
+- The six-file documentation update is complete. Commit `73b5d14db3e33a8be60d6729e41d38b93bac1201` is committed and pushed to `davidcloud001/usol-token` on `docs/update-project-guidance`.
+- The next approved task is implementing the Project Information page. The page has not yet been implemented.
+- Website swaps, transfers, signing, payments, and other transaction features are not approved. No merge into an integration or default branch, or production deployment, has been authorized.
 
 ## C. Website implementation status
 
@@ -95,7 +96,7 @@ Use the approved updated development baseline, then create/use a **separate feat
 ## CURRENT HANDOVER STATUS
 
 - **Previous work:** The verified recent history implements the current Wallet Standard wallet experience, read-only balances, restricted RPC proxy, and related server/test updates; the history and its limitations are summarized in section D.
-- **Current project state:** The checkout is `davidcloud001/usol-token`, branch `docs/update-project-guidance`. At the start of this documentation task the worktree was clean. Existing web and offline automated tests passed as recorded in section C; manual wallet/device testing remains unverified.
-- **Next responsible workflow:** After owner review of this documentation update, the website implementation agent should start from the approved updated development baseline on a separate feature branch and implement only section E.
-- **Outstanding decisions:** No deployment approval or additional transaction-feature approval exists. No current live deployment or manual real-wallet/device test has been verified.
+- **Current project state:** The six-file documentation update is complete and committed/pushed as `73b5d14db3e33a8be60d6729e41d38b93bac1201` to `davidcloud001/usol-token` on `docs/update-project-guidance`. The Project Information page remains unimplemented.
+- **Next responsible workflow:** Implement only section E on a separate feature branch based on the approved updated development baseline.
+- **Outstanding decisions:** No merge into an integration/default branch or production deployment is authorized. No additional transaction feature is approved. No current live deployment or manual real-wallet/device test has been verified.
 - **Latest verified update:** 2026-11-13.
