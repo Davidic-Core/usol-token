@@ -1252,3 +1252,197 @@ h3 {
     transition: none;
   }
 }
+
+/* Support page */
+
+.support-hero__panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  justify-self: end;
+  width: 100%;
+  max-width: 520px;
+  padding: clamp(1.4rem, 3.4vw, 2rem);
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(26rem 18rem at 92% -18%, rgba(79, 70, 229, 0.55), transparent 66%),
+    radial-gradient(20rem 16rem at -10% 116%, rgba(20, 241, 149, 0.2), transparent 62%),
+    linear-gradient(158deg, #0b1224 0%, #101a33 54%, #09101f 100%);
+  box-shadow: 0 36px 80px -46px rgba(9, 16, 31, 0.9);
+  color: #e8effc;
+}
+
+.support-hero__panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse at 88% 0%, #000 18%, transparent 74%);
+  mask-image: radial-gradient(ellipse at 88% 0%, #000 18%, transparent 74%);
+}
+
+.support-hero__panel :focus-visible {
+  outline-color: #a5b4fc;
+}
+
+.support-hero__eyebrow {
+  margin: 0 0 0.35rem;
+  color: #a5b4fc;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.support-hero__title {
+  margin: 0 0 1.1rem;
+  color: #ffffff;
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  letter-spacing: -0.02em;
+}
+
+.support-hero__list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.support-hero__item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.78rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8effc;
+  text-decoration: none;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.support-hero__item:hover {
+  border-color: rgba(165, 180, 252, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.support-hero__num {
+  flex: 0 0 auto;
+  color: #a5b4fc;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.support-hero__text {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.support-hero__label {
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.support-hero__hint {
+  color: #9fb0cf;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+/* Chapters are self-similar: a section header plus a card grid. Adding an
+   initiative later means adding a card here, or a new section that repeats
+   this pattern with its own id. */
+
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr));
+  gap: 1rem;
+}
+
+.support-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: clamp(1.35rem, 3vw, 1.75rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: 0 18px 50px -40px rgba(15, 23, 42, 0.45);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.support-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: linear-gradient(90deg, var(--indigo), var(--cyan), var(--green));
+}
+
+.support-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79, 70, 229, 0.4);
+  box-shadow: 0 26px 60px -42px rgba(15, 23, 42, 0.55);
+}
+
+.support-card__icon {
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.8rem;
+  background: linear-gradient(140deg, rgba(79, 70, 229, 0.16), rgba(34, 211, 238, 0.18));
+  color: var(--indigo);
+}
+
+.support-card h3 {
+  margin: 0;
+}
+
+.support-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.support-card__link {
+  margin-top: auto;
+  padding-top: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.support-grow__title {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .support-hero__panel {
+    order: 2;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-card,
+  .support-hero__item {
+    transition: none;
+  }
+
+  .support-card:hover,
+  .support-hero__item:hover {
+    transform: none;
+  }
+}
