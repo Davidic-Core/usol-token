@@ -1088,6 +1088,14 @@ h3 {
 .wallet-option-row .wallet-option img { flex: 0 0 auto; border-radius: 0.45rem; background: #fff; }
 .wallet-option-row .wallet-option small { margin-left: auto; color: rgba(255,255,255,0.75); font-size: 0.72rem; font-weight: 500; }
 .wallet-option-row > a { color: var(--indigo); font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.wallet-option__mark { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; border-radius: 0.45rem; background: rgba(255, 255, 255, 0.18); font-size: 0.85rem; font-weight: 700; }
+.wallet-option[disabled] { cursor: not-allowed; opacity: 0.6; }
+.wallet-option[disabled]:hover { background: var(--indigo); }
+.wallet-selector__help { display: grid; gap: 0.5rem; margin-top: 0.9rem; }
+.wallet-selector__help[hidden] { display: none; }
+.wallet-selector__help p { margin: 0; }
+.wallet-selector__help a { color: var(--indigo); font-weight: 650; }
+.wallet-selector__help .wallet-selector__note { color: var(--muted); font-size: 0.8rem; }
 .wallet-label { display: flex; align-items: center; gap: 0.4rem; }
 .wallet-token-logo { flex: 0 0 auto; border-radius: 50%; object-fit: contain; }
 

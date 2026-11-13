@@ -17,6 +17,7 @@
          the mobile menu never flashes as a wrapped list. -->
     <script src="/nav.js"></script>
     <script src="/wallet-core.js"></script>
+    <script src="/wallet-discovery.js"></script>
     <script src="/wallet-home.js" defer></script>
     <script src="/theme.js" defer></script>
   </head>
@@ -79,7 +80,9 @@
       </section>
       <dialog class="wallet-selector" id="wallet-selector" aria-labelledby="wallet-selector-title">
         <div class="wallet-selector__head"><h2 id="wallet-selector-title">Choose a wallet</h2><button class="wallet-selector__close" id="wallet-selector-close" type="button" aria-label="Close wallet selector">×</button></div>
-        <p>Only a public address is read.</p><div class="wallet-options"></div>
+        <p>Solana wallets installed in this browser are detected automatically. Only a public address is read.</p>
+        <div class="wallet-options"></div>
+        <div class="wallet-selector__help" id="wallet-selector-help" hidden></div>
       </dialog>
       <section class="hero" aria-labelledby="hero-title">
         <div class="wrap hero__grid">

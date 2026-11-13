@@ -40,7 +40,7 @@ Offline tests use fixtures and mocks. They do not contact Mainnet or prove curre
 
 Website tests:
 
-node --test web/tests/server.test.js web/tests/wallet.test.js
+npm run test:web
 
 Retired utilities
 
@@ -63,34 +63,45 @@ Current website functionality includes:
 - Canonical USOL mint address and copy control.
 - Solscan token and metadata links.
 - Responsive navigation.
-- A Phantom-only wallet connection and disconnection page at "/wallet".
+- A homepage wallet panel: Solana Wallet Standard discovery, Phantom and
+  Solflare injected fallbacks, connect and disconnect, account-change handling,
+  and read-only SOL and USOL balances.
 
-The wallet page is unlinked from the homepage and marked "noindex".
+Balances are read through the site's own server-side Solana Mainnet RPC proxy
+(`POST /api/rpc`), which accepts only `getBalance` and `getTokenAccountsByOwner`.
+The upstream endpoint is set with `SOLANA_RPC_URL` (or `HELIUS_API_KEY` for a
+Helius Mainnet endpoint); the key stays on the server and is never served to the
+browser.
 
-The current wallet implementation does not display balances, sign messages or transactions, transfer tokens, buy or sell tokens, or execute swaps.
+The wallet panel does not sign messages or transactions, transfer tokens, buy or
+sell tokens, or execute swaps. Future transaction functionality, including token
+swaps, requires separate technical review and explicit owner approval.
 
-Future functionality, including read-only balances and token swaps, requires separate technical review and explicit owner approval.
+The approved next website task is a dedicated Project Information page at
+`/project-information`: keep Overview on the homepage and move detailed Token,
+Principles, Transparency, and Risks content to that page. It is not implemented
+yet. The page structure, navigation destinations, and browser-history
+requirements are recorded in `agent/WEBSITE_ARCHITECTURE.md`.
 
 Development documentation
 
 Read these documents before working on the website:
 
-1. ""AGENT.md"" (AGENT.md) — project-wide rules and security requirements.
-2. ""agent/SKILL.md"" (agent/SKILL.md) — general development workflow.
-3. ""agent/WEBSITE_ARCHITECTURE.md"" (agent/WEBSITE_ARCHITECTURE.md) — website architecture and roadmap.
-4. ""agent/HANDOVER.md"" (agent/HANDOVER.md) — current project status and next steps.
-5. ""agent/V0_INSTRUCTIONS.md"" (agent/V0_INSTRUCTIONS.md) — dedicated v0 implementation instructions.
+1. `AGENT.md` — project-wide rules and security requirements.
+2. `agent/SKILL.md` — general development workflow.
+3. `agent/WEBSITE_ARCHITECTURE.md` — website architecture and approved page structure.
+4. `agent/HANDOVER.md` — current project status, verified tests, and next steps.
+5. `agent/V0_INSTRUCTIONS.md` — website implementation guidance retained from the former v0 workflow.
 
 Development workflow
 
 - GitHub is the source of truth.
-- "Davidic-core/usol-token" is the owner's working fork.
+- The verified working repository is "davidcloud001/usol-token", a fork of the canonical upstream "Snr-Dave/usol-token".
 - "Snr-Dave/usol-token" is the canonical upstream repository.
-- v0 is the planned website implementation agent.
-- Vercel is intended for preview builds and hosting.
-- Acode can be used for local development and testing.
+- GitHub Copilot is used for documentation and agent-instruction maintenance.
+- Base44 is currently used for website implementation, on a separate feature branch based on the approved updated development baseline.
 
-Website implementation must use an approved development branch. Do not assume preview hosting or production deployment is configured until verified.
+Review changes before merging or deployment; owner approval is required before either action. Verify the current repository and branch for each task. Do not assume a preview or production deployment is configured.
 
 Security and approval
 

@@ -13,6 +13,7 @@
   "scripts": {
     "verify:mainnet": "node deploy-mainnet.js",
     "test:offline": "node test/mainnet-deployed.test.js",
+    "test:web": "node --test web/tests/*.test.js",
     "start": "node web/server.js"
   }
 }
