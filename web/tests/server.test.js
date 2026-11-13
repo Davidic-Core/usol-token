@@ -168,7 +168,7 @@ test("mobile navigation is a local disclosure dropdown", async () => {
 test("token section presents the pinned canonical facts", async () => {
   const html = await (await fetch(`${base}/project-information`)).text();
 
-  assert.match(html, /href="\/project-information#token"/);
+  assert.match(html, /href="\/project-information"/);
   assert.match(html, /Solana Mainnet/);
   assert.match(html, /Classic SPL Token/);
   assert.match(html, /<dt>Token name<\/dt>\s*<dd>UnitedSOLANA<\/dd>/);
@@ -273,11 +273,12 @@ test("project information page is served with its three section anchors", async 
   assert.match(html, /id="transparency"/);
   assert.doesNotMatch(html, /id="risks?"/);
 
-  // Section destinations required by the approved navigation.
-  assert.match(html, /<a href="\/project-information#token">Token<\/a>/);
-  assert.match(html, /<a href="\/project-information#principles">Principles<\/a>/);
-  assert.match(html, /<a href="\/project-information#transparency">Transparency<\/a>/);
-  assert.match(html, /<a href="\/#overview">Overview<\/a>/);
+  // Section links stay inside the single project information page.
+  const sectionNav = /<nav class="hero__actions" aria-label="On this page">([\s\S]*?)<\/nav>/.exec(html);
+  assert.ok(sectionNav, "the information page has internal section navigation");
+  assert.match(sectionNav[1], /href="#token">Token information<\/a>/);
+  assert.match(sectionNav[1], /href="#principles">Principles<\/a>/);
+  assert.match(sectionNav[1], /href="#transparency">Transparency<\/a>/);
 
   // The risks section and its links were removed from the site.
   assert.doesNotMatch(html, /#risks?["<]/);
@@ -287,6 +288,23 @@ test("project information page is served with its three section anchors", async 
   // The information page is read-only: no wallet markup or wallet scripts.
   assert.doesNotMatch(html, /wallet-core\.js|wallet-discovery\.js|wallet-home\.js/);
   assert.doesNotMatch(html, /id="homepage-connect"/);
+});
+
+test("shared primary and footer navigation contain only Overview and Token", async () => {
+  const expectedLinks = [
+    ["/", "Overview"],
+    ["/project-information", "Token"]
+  ];
+
+  for (const route of ["/", "/project-information"]) {
+    const html = await (await fetch(`${base}${route}`)).text();
+    const menus = [...html.matchAll(/<nav class="(?:site-nav|footer-nav)"[^>]*>([\s\S]*?)<\/nav>/g)];
+    assert.equal(menus.length, 2, `${route} has primary and footer navigation`);
+    for (const menu of menus) {
+      const links = [...menu[1].matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)];
+      assert.deepEqual(links.map((link) => [link[1], link[2]]), expectedLinks);
+    }
+  }
 });
 
 test("the removed wallet page and its exclusive assets are no longer served", async () => {
